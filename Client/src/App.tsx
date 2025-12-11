@@ -1,11 +1,21 @@
-import ParentForm from './ParentForm';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ParentForm from "./Pages/ParentForm";
+import Societal from "./Pages/Societal";
 
 function App() {
   return (
-    <div>
-       {/* Use simple rendering for now, or React Router if you have it installed */}
-       <ParentForm />
-    </div>
+    <Router>
+      <Routes>
+        {/* Home page */}
+        <Route path="/ParentForm" element={<ParentForm />} />
+
+        {/* Other page */}
+        <Route path="/Societal" element={<Societal />} />
+
+        {/* You can add more pages here */}
+        {/* <Route path="/career-survey" element={<CareerSurveyForm />} /> */}
+      </Routes>
+    </Router>
   );
 }
 

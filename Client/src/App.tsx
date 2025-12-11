@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ParentForm from "./Pages/ParentForm";
 import Societal from "./Pages/Societal";
+import LandingPage from "./Pages/LandingPage";
 
 function App() {
   return (
@@ -13,7 +14,8 @@ function App() {
         <Route path="/Societal" element={<Societal />} />
 
         {/* You can add more pages here */}
-        {/* <Route path="/career-survey" element={<CareerSurveyForm />} /> */}
+        {/* Landing page */}
+        <Route path="/" element={<LandingPage />} />
       </Routes>
     </Router>
   );

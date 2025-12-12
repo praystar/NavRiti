@@ -1,58 +1,60 @@
+// src/app.ts
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 
-import parentRoutes from './routes/parentRoutes';
-import societalRoutes from './routes/societalRoutes';
+import authRouter from './routes/auth.router';
+import apiRouter from './routes/router';
+import { requireAuth } from './middleware/auth';
 
-// new swagger imports
-import { swaggerSpec, swaggerUiServe, swaggerUiSetup } from './util/swagger';
-
-dotenv.config();
+import {
+  swaggerSpec,
+  swaggerUiServe,
+  swaggerUiSetup
+} from './util/swagger';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
-// ----- GLOBAL RATE LIMIT -----
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    status: "error",
-    message: "Too many requests from this IP. Please slow down."
-  }
-});
+// ---------------- CORS ----------------
+app.use(cors({
+  origin: '*',
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-app.use(globalLimiter);
-
-// ----- STRICT LIMIT FOR EXPENSIVE ENDPOINTS (AI inference etc.) -----
-const aiLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 50,                  // only 50 hits allowed per 5 minutes
-  message: {
-    status: "error",
-    message: "Rate limit exceeded for AI tool. Try again later."
-  }
-});
-
-// Middleware
-app.use(cors());
 app.use(express.json());
 
-// ----- SWAGGER UI -----
-app.use('/api/docs', swaggerUiServe, swaggerUiSetup(swaggerSpec));
+// ---------------- Swagger ----------------
+app.use(
+  '/api/docs',
+  swaggerUiServe,
+  swaggerUiSetup(swaggerSpec)
+);
 
-// Routes
-app.use('/api/parent', aiLimiter, parentRoutes);
-app.use('/api/societal', aiLimiter, societalRoutes);
+// ---------------- Debug Logger ----------------
+app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.path} AUTH:`, req.headers.authorization || 'none');
+  next();
+});
 
-// ----- DB Connection -----
+// ---------------- Public Auth Routes ----------------
+app.use('/api/auth', authRouter);
+
+// ---------------- Protected Routes ----------------
+// app.use('/api', requireAuth);  //dont remove this 
+app.use('/api', apiRouter);
+
+// ---------------- MongoDB ----------------
 mongoose.connect(process.env.MONGO_URI as string)
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log(err));
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.error("MongoDB Connection Error:", err));
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// ---------------- Start Server ----------------
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Swagger docs: http://localhost:${PORT}/api/docs`);
+});

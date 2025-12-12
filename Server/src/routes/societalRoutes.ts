@@ -12,9 +12,9 @@ const router = Router();
  *       - Societal Analysis
  *     summary: Analyze societal factors and return a static evaluation result
  *     description: >
- *       This endpoint accepts any JSON payload representing societal indicators 
- *       (peer pressure, family influence, role-model influence, or any survey results).
- *       It stores both the input and the static generated analysis inside MongoDB.
+ *       Accepts any JSON payload representing societal indicators (peer pressure, family influence,
+ *       role-model influence, or survey results). Stores both the raw input and a static analysis
+ *       result inside MongoDB for later review.
  *
  *     requestBody:
  *       required: true
@@ -22,7 +22,7 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             description: Any arbitrary JSON survey or societal data payload
+ *             description: Arbitrary JSON payload representing survey responses or societal signals
  *             example:
  *               survey_id: "survey_9e13aa"
  *               responses:
@@ -45,40 +45,62 @@ const router = Router();
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - status
+ *                 - message
+ *                 - analysis
+ *                 - saved_id
  *               properties:
  *                 status:
  *                   type: string
- *                   example: success
+ *                   example: "success"
  *                 message:
  *                   type: string
- *                   example: Analysis completed (static result). Saved to DB.
+ *                   example: "Analysis completed (static result). Saved to DB."
  *                 analysis:
  *                   type: object
+ *                   required:
+ *                     - score
+ *                     - summary
  *                   properties:
  *                     score:
  *                       type: number
  *                       example: 72
  *                     summary:
  *                       type: string
- *                       example: Moderate societal alignment — some positive indicators.
+ *                       example: "Moderate societal alignment — there are both positive indicators and some risk factors."
  *                     recommended_actions:
  *                       type: array
  *                       items:
  *                         type: string
  *                       example:
- *                         - Investigate flagged regions
- *                         - Increase public-awareness campaigns
- *                         - Monitor trends weekly
+ *                         - "Investigate flagged regions"
+ *                         - "Increase public-awareness campaigns"
+ *                         - "Monitor trends weekly"
  *                     flags:
  *                       type: array
  *                       items:
  *                         type: string
  *                       example:
- *                         - budget_mismatch
- *                         - regional_variability
+ *                         - "budget_mismatch"
+ *                         - "regional_variability"
  *                 saved_id:
  *                   type: string
- *                   example: 67ab9222d83a291833650cef
+ *                   example: "67ab9222d83a291833650cef"
+ *
+ *       400:
+ *         description: Bad request (e.g., empty body)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Bad request: payload required."
  *
  *       500:
  *         description: Server error processing request
@@ -89,10 +111,12 @@ const router = Router();
  *               properties:
  *                 status:
  *                   type: string
- *                   example: error
+ *                   example: "error"
  *                 message:
  *                   type: string
- *                   example: Server error
+ *                   example: "Server error"
+ *                 error:
+ *                   type: string
  */
 router.post('/analyze', analyzeSocietal);
 

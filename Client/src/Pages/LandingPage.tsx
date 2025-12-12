@@ -1,10 +1,21 @@
-import  { useState } from 'react';
-import { Menu, X, Compass, TrendingUp, Users, Award, Stethoscope, Code, Building2, Sparkles, Check } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Compass,
+  TrendingUp,
+  Users,
+  Award,
+  Stethoscope,
+  Code,
+  Building2,
+  Sparkles,
+  Check,
+  Menu,
+  X,
+} from 'lucide-react';
 import Column from '../components/Column';
 import { useInView } from "react-intersection-observer";
 
 
-// Custom hook for intersection observer
 
 
 // Navbar Component
@@ -12,9 +23,8 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Parent Form', path: '/ParentForm' },
-    { name: 'Societal', path: '/Societal' },
+    { name: 'Login', path: '/login' },
+    { name: 'Signup', path: '/signup' },
   ];
 
   return (

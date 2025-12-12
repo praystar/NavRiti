@@ -20,8 +20,39 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // ---------------- CORS ----------------
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5174',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+    ];
+
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (isDevelopment) {
+      // In development, allow localhost origins
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all in dev
+      }
+    } else {
+      // In production, only allow specific origins
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'), false);
+      }
+    }
+  },
+  credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));

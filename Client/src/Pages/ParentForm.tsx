@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Home, 
-  Save, 
-  RotateCcw, 
-  Wand2, 
-  Wallet, 
-  Shield, 
-  Award, 
-  MapPin, 
-  Plane, 
-  Ban, 
-  CheckCircle, 
-  AlertTriangle 
+import {
+  Home,
+  Save,
+  RotateCcw,
+  Wand2,
+  Wallet,
+  Shield,
+  Award,
+  MapPin,
+  Plane,
+  Ban,
+  CheckCircle,
+  AlertTriangle
 } from "lucide-react";
+import AppNavbar from "../components/AppNavbar.tsx";
 
 const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API ?? "";
 
@@ -205,18 +206,14 @@ const handleQuickFill = () => {
 
   // --- RENDER ---
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Header / Nav */}
-        <button
-          type="button"
-          className="flex items-center gap-2 text-teal-600 hover:text-teal-700 mb-6 font-medium transition-colors"
-          aria-label="Back to Home"
-        >
+    <div className="min-h-screen bg-gray-50">
+      <AppNavbar showAuthLinks={false} />
+      <div className="max-w-4xl mx-auto px-4 pt-24 pb-10">
+        {/* Header */}
+        <div className="flex items-center gap-2 text-teal-600 mb-6 font-medium">
           <Home size={18} />
-          Back to Home
-        </button>
+          <a href="/" className="hover:text-teal-700 transition-colors">Back to Home</a>
+        </div>
 
         <form onSubmit={onSubmit} className="space-y-6">
           

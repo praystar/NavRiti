@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Home, Wand2 } from 'lucide-react'; // Added Wand2
+import { ChevronLeft, ChevronRight, Home, Wand2 } from 'lucide-react';
+import AppNavbar from '../components/AppNavbar.tsx';
 
 type SurveySection = {
   section: string;
@@ -191,17 +192,14 @@ const CareerSurveyForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <AppNavbar showAuthLinks={false} />
+      <div className="max-w-4xl mx-auto px-4 pt-24 pb-10">
         {/* Header */}
-        <button
-          type="button"
-          className="flex items-center gap-2 text-teal-600 hover:text-teal-700 mb-6 font-medium"
-          aria-label="Back to Home"
-        >
+        <div className="flex items-center gap-2 text-teal-600 mb-6 font-medium">
           <Home size={18} />
-          Back to Home
-        </button>
+          <a href="/" className="hover:text-teal-700 transition-colors">Back to Home</a>
+        </div>
 
         {/* Progress */}
         <div className="mb-6">

@@ -1,3 +1,4 @@
+// src/routes/parentRoutes.ts
 import { Router } from 'express';
 import { submitParentPreferences } from '../controllers/parentController';
 
@@ -11,8 +12,8 @@ const router = Router();
  *       - Parent Preferences
  *     summary: Submit parental career preference weights and receive AI-based recommendation
  *     description: >
- *       Accepts structured parent preference data, stores it in MongoDB, and returns a static
- *       recommendation response (future-ready for ML model integration).
+ *       Accepts structured parent preference data, validates required fields, stores it in MongoDB,
+ *       and returns a static recommendation response (future-ready for ML model integration).
  *
  *     requestBody:
  *       required: true
@@ -38,18 +39,21 @@ const router = Router();
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
+ *                 format: float
  *                 example: 0.9
  *
  *               job_security_weight:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
+ *                 format: float
  *                 example: 0.8
  *
  *               prestige_weight:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
+ *                 format: float
  *                 example: 0.5
  *
  *               location_preference:
@@ -64,6 +68,8 @@ const router = Router();
  *
  *               budget_constraints:
  *                 type: object
+ *                 required:
+ *                   - max_tuition_per_year
  *                 properties:
  *                   max_tuition_per_year:
  *                     type: number
@@ -85,12 +91,14 @@ const router = Router();
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
+ *                 format: float
  *                 example: 0.3
  *
  *               weight_on_parent_layer:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
+ *                 format: float
  *                 example: 0.5
  *
  *     responses:
@@ -100,6 +108,11 @@ const router = Router();
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - status
+ *                 - message
+ *                 - prediction
+ *                 - saved_id
  *               properties:
  *                 status:
  *                   type: string
@@ -130,6 +143,20 @@ const router = Router();
  *                 saved_id:
  *                   type: string
  *                   example: "67ab9222d83a291833650cef"
+ *
+ *       400:
+ *         description: Validation error (bad request)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed: missing required field."
  *
  *       500:
  *         description: Server error while saving parent preferences

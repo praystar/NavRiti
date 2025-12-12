@@ -1,83 +1,90 @@
-import { CustomRequest } from "./../middleware/auth";
-import { Request, Response, NextFunction } from "express";
+// src/controllers/user.controller.ts
+import { Response, NextFunction } from "express";
 import HttpError from "../util/HttpError";
-import User from "../models/user.model";
+import User from "../models/User";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { AuthRequest } from "../middleware/auth";
 
-const getUser = async (req: Request, res: Response, next: NextFunction) => {
-	let user;
+/**
+ * GET /user/:id
+ * Optional — not used by your router right now
+ */
+export const getUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.params.id).select("-password -otp -otpExpires");
+    if (!user) return res.status(404).json({ message: "User not found!" });
 
-	try {
-		user = await User.findById(req.params.id);
-	} catch (err) {
-		return next(new HttpError("Something went wrong. Could not find user.", 500));
-	}
-
-	if (user) {
-		res.status(200).json(user.toObject({ getters: true }));
-	} else {
-		res.status(404).json({ message: "User not found!" });
-	}
+    return res.status(200).json(user.toObject({ getters: true }));
+  } catch (err) {
+    console.error(err);
+    return next(new HttpError("Could not find user.", 500));
+  }
 };
 
-const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * DELETE /user/delete
+ * Deletes the user making the request
+ */
+export const deleteUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-	let user;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found!" });
 
-	try {
-		user = await User.findById((req as CustomRequest).token.id);
-	} catch (err) {
-		return next(new HttpError("Something went wrong. Could not delete user.", 500));
-	}
+    await user.deleteOne();
 
-	if (user) {
-		try {
-			await user.remove();
-		} catch (err) {
-			return next(new HttpError("Something went wrong. Could not delete user.", 500));
-		}
-		res.status(200).json({ message: "User deleted." });
-	} else {
-		res.status(404).json({ message: "User not found!" });
-	}
-
+    return res.status(200).json({ status: "success", message: "User deleted." });
+  } catch (err) {
+    console.error(err);
+    return next(new HttpError("Could not delete user.", 500));
+  }
 };
 
-const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
-	let user;
+/**
+ * GET /user/profile
+ * Returns authenticated user's profile
+ */
+export const getUserProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-	try {
-		user = await User.findById((req as CustomRequest).token.id).select("-password");
-	} catch (err) {
-		return next(new HttpError("Something went wrong. Could not find user.", 500));
-	}
+    const user = await User.findById(req.user.id).select("-password -otp -otpExpires");
+    if (!user) return res.status(404).json({ message: "User not found!" });
 
-	if (user) {
-		res.status(200).json(user.toObject({ getters: true }));
-	} else {
-		res.status(404).json({ message: "User not found!" });
-	}
+    return res.status(200).json(user.toObject({ getters: true }));
+  } catch (err) {
+    console.error(err);
+    return next(new HttpError("Could not fetch profile.", 500));
+  }
 };
 
-const updateUserProfile = async (req: Request, res: Response, next: NextFunction) => {
-	let user;
+/**
+ * PUT /user/profile
+ * Update authenticated user's fields
+ */
+export const updateUserProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-	try {
-		user = await User.findById(req.body.id);
-	} catch (err) {
-		return next(new HttpError("Something went wrong. Could not save user.", 500));
-	}
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found!" });
 
-	if (user) {
-		user.name = req.body.name || user.name;
-		user.email = req.body.email || user.email;
+    // Update allowed fields
+    user.name = req.body.name ?? user.name;
+    user.email = req.body.email ?? user.email;
 
-		const updatedUser = await user.save();
-		res.status(200).json(updatedUser.toObject({ getters: true }));
-	} else {
-		res.status(404).json({ message: "User not found!" });
-	}
+    // Optional: If password is provided, re-hash
+    if (req.body.password) {
+      const hashed = await bcrypt.hash(req.body.password, 10);
+      user.password = hashed;
+    }
+
+    const updatedUser = await user.save();
+
+    return res.status(200).json(updatedUser.toObject({ getters: true }));
+  } catch (err) {
+    console.error(err);
+    return next(new HttpError("Could not update profile.", 500));
+  }
 };
-
-export { getUser, deleteUser, getUserProfile, updateUserProfile };

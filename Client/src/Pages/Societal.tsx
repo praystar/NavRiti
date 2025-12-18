@@ -12,7 +12,7 @@ type SurveySection = {
 const surveyData: SurveySection[] = [
   {
     section: "A",
-    title: "Section A — Influence of Friend Circle / Peers",
+    title: "Influence of Friend Circle / Peers",
     questions: [
       "My friends’ career interests influence my own career preferences.",
       "I feel motivated to choose a career if most of my close friends are planning for it.",

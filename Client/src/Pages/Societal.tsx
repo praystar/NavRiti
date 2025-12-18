@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Home, Wand2 } from 'lucide-react';
 import AppNavbar from '../components/AppNavbar.tsx';
-
+//new societal page 
 type SurveySection = {
   section: string;
   title: string;
@@ -12,46 +12,35 @@ type SurveySection = {
 const surveyData: SurveySection[] = [
   {
     section: "A",
-    title: "Friends & Peers",
+    title: "Section A — Influence of Friend Circle / Peers",
     questions: [
-      "My friends' career interests influence my own career preferences.",
-      "I feel motivated to choose a career if most of my friends are planning for it.",
-      "If my close friends choose a career in Tech, I am more likely to consider it.",
-      "If my close friends choose a career in Medical, I am more likely to consider it.",
-      "If my close friends choose a career in Sports, I am more likely to consider it.",
-      "If my close friends choose a career in Government services (banking/army/UPSC), I am more likely to consider it.",
-      "I feel pressure to choose a career that helps me retain my social circle.",
-      "I would feel left out if I chose a completely different career from my friends."
+      "My friends’ career interests influence my own career preferences.",
+      "I feel motivated to choose a career if most of my close friends are planning for it.",
+      "If my close friends choose a career in Technology (IT, software, AI, etc.), I am more likely to consider it.",
+      "If my close friends choose a career in Medical (doctor, nursing, healthcare, etc.), I am more likely to consider it.",
+      "If my close friends choose a career in Government services (banking, civil services, army, etc.), I am more likely to consider it."
     ]
   },
   {
     section: "B",
-    title: "Family & Relatives",
+    title: "Influence of Family and Relatives",
     questions: [
-      "My family's opinion is very important in choosing my career.",
-      "My family expects me to choose a respected profession.",
-      "My relatives often compare my potential career with their children or others.",
-      "If someone in my family works in Tech, I am more encouraged to pursue the same.",
-      "If someone in my family works in Medical, I am more encouraged to pursue the same.",
-      "If someone in my family works in Sports, I am more encouraged to pursue the same.",
-      "If someone in my family works in Government services, I am more encouraged to pursue the same.",
-      "My family would be disappointed if I chose a career different from their expectations.",
-      "Career salary and job security are important to my family while advising me.",
-      "I avoid careers that my family disapproves of even if I am interested in them."
+      "My family’s opinion plays an important role in my career decision-making.",
+      "My family expects me to choose a career that is socially respected and stable.",
+      "If someone in my family or relatives works in Technology, I feel encouraged to pursue a similar career.",
+      "If someone in my family or relatives works in Medical, I feel encouraged to pursue a similar career.",
+      "If someone in my family or relatives works in Government services, I feel encouraged to pursue a similar career."
     ]
   },
   {
     section: "C",
-    title: "Role Models & Inspiration",
+    title: "Influence of Role Models",
     questions: [
-      "Having a successful role model motivates me to choose a career similar to them.",
-      "I follow influencers / celebrities / seniors who inspire me about careers.",
-      "A successful Tech professional (e.g., software engineer/AI expert) inspires me to take a similar path.",
-      "A successful doctor / nurse / medical practitioner inspires me to take a similar path.",
-      "A successful athlete or sportsperson inspires me to take a similar path.",
-      "A successful army officer / banker / civil servant inspires me to take a similar path.",
-      "I tend to believe that if my role model succeeded in a career, I can also succeed in it.",
-      "I would be more confident to select a career if I personally know someone who is successful in it."
+      "Having a successful role model strongly influences my career choices.",
+      "A successful professional in Technology (software engineer, AI expert, etc.) inspires me to pursue a similar career.",
+      "A successful doctor or healthcare professional inspires me to pursue a similar career.",
+      "A successful government employee (banker, army officer, civil servant, etc.) inspires me to pursue a similar career.",
+      "Personally knowing or following a successful professional increases my confidence in choosing that career."
     ]
   }
 ];
@@ -64,7 +53,7 @@ const likertOptions: { value: number; label: string }[] = [
   { value: 5, label: "Strongly Agree" }
 ];
 
-const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API;
+const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API ?? '';
 const API_ROUTE = `${SERVER_BASE}/societal/analyze`;
 
 const CareerSurveyForm: React.FC = () => {

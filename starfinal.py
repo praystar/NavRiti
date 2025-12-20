@@ -418,6 +418,7 @@ class KundaliGenerator:
                 "planets": planets_data,
                 "personality_traits": personality_traits   
             }
+            
             # ---- PERSONALITY TRAITS INPUT ----
 
             # Add career analysis to result

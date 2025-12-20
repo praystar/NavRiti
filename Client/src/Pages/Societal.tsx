@@ -1,46 +1,47 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Home, Wand2 } from 'lucide-react';
+import React, { useState} from 'react';
+import { ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
 import AppNavbar from '../components/AppNavbar.tsx';
-//new societal page 
+import Highlighter from '../utils/highlight.tsx';
+//new societal page : edit changed questions and removed home bar
 type SurveySection = {
   section: string;
-  title: string;
+  
   questions: string[];
 };
 
 const surveyData: SurveySection[] = [
   {
     section: "A",
-    title: "Influence of Friend Circle / Peers",
     questions: [
-      "My friends’ career interests influence my own career preferences.",
-      "I feel motivated to choose a career if most of my close friends are planning for it.",
-      "If my close friends choose a career in Technology (IT, software, AI, etc.), I am more likely to consider it.",
-      "If my close friends choose a career in Medical (doctor, nursing, healthcare, etc.), I am more likely to consider it.",
-      "If my close friends choose a career in Government services (banking, civil services, army, etc.), I am more likely to consider it."
+      "Doctors or healthcare professionals inspire me to choose a medical career.",
+      "My friends choosing technology-related careers does not affect my career preferences.",
+      "If someone in my family or relatives works in government services, I feel encouraged to pursue a similar career.",
+      "When my friends show interest in medical professions, it influences my career thinking.",
+      "Technology professionals do not influence my career decisions.",
+      "If someone in my family works in technology, I feel encouraged to pursue a similar field."
     ]
   },
   {
     section: "B",
-    title: "Influence of Family and Relatives",
     questions: [
-      "My family’s opinion plays an important role in my career decision-making.",
-      "My family expects me to choose a career that is socially respected and stable.",
-      "If someone in my family or relatives works in Technology, I feel encouraged to pursue a similar career.",
-      "If someone in my family or relatives works in Medical, I feel encouraged to pursue a similar career.",
-      "If someone in my family or relatives works in Government services, I feel encouraged to pursue a similar career."
+      "Friends preparing for government careers do not influence my career choice.",
+      "Family members in the medical field encourage me to consider healthcare careers.",
+      "Watching a respected government officer motivates me to consider government services.",
+      "Family members working in technology do not influence my career choice.",
+      "Doctors do not influence my career choice.",
+      "If many of my close friends choose technology-related careers, I feel motivated to consider the same."
     ]
   },
   {
     section: "C",
-    title: "Influence of Role Models",
     questions: [
-      "Having a successful role model strongly influences my career choices.",
-      "A successful professional in Technology (software engineer, AI expert, etc.) inspires me to pursue a similar career.",
-      "A successful doctor or healthcare professional inspires me to pursue a similar career.",
-      "A successful government employee (banker, army officer, civil servant, etc.) inspires me to pursue a similar career.",
-      "Personally knowing or following a successful professional increases my confidence in choosing that career."
+      "Having family members or relatives in government services does not influence my interest in pursuing a government career.",
+      "My friends’ interest in medical professions has no impact on my career decisions.",
+      "A successful technology professional inspires me to pursue a tech career.",
+      "Seeing my friends prepare for government service careers makes me consider that path.",
+      "A medical background in my family does not influence my career choice.", 
+      "Government officers do not motivate me to pursue government services."
     ]
   }
 ];
@@ -183,12 +184,10 @@ const CareerSurveyForm: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AppNavbar showAuthLinks={false} />
+      <Highlighter trigger={currentStep} />
       <div className="max-w-4xl mx-auto px-4 pt-24 pb-10">
         {/* Header */}
-        <div className="flex items-center gap-2 text-teal-600 mb-6 font-medium">
-          <Home size={18} />
-          <a href="/" className="hover:text-teal-700 transition-colors">Back to Home</a>
-        </div>
+        
 
         {/* Progress */}
         <div className="mb-6">
@@ -209,9 +208,6 @@ const CareerSurveyForm: React.FC = () => {
           {/* Section Header */}
           <div className="border-b border-gray-200 p-6 flex justify-between items-start">
             <div>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-1">
-                Section {currentSection.section}: {currentSection.title}
-                </h2>
                 <p className="text-gray-600 text-sm">
                 Rate how much you agree with each statement
                 </p>
@@ -220,6 +216,7 @@ const CareerSurveyForm: React.FC = () => {
             {/* --- Added Quick Fill Button Here in Header (Optional Placement) --- */}
             {/* Use this if you want it visible at top, otherwise see footer below */}
           </div>
+          
 
           {/* Questions */}
           <div className="p-6 space-y-8">
@@ -327,5 +324,6 @@ const CareerSurveyForm: React.FC = () => {
     </div>
   );
 };
+
 
 export default CareerSurveyForm;

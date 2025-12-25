@@ -23,7 +23,9 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Parent Form', path: '/ParentForm' },
+    { name: 'Input', path: '/Input' },
+    {name: 'Celestial', path: '/Celestialmapping' },
+    { name: 'Parent', path: '/ParentForm' },
     { name: 'Societal', path: '/Societal' },
     ...(showAuthLinks
       ? [{ name: 'Login', path: '/login' }, { name: 'Signup', path: '/signup' }]

@@ -5,7 +5,11 @@ import LandingPage from "./Pages/LandingPage";
 import LoginPage from "./Pages/Login";
 import SignupPage from "./Pages/Signup";
 import ProfilePage from "./Pages/Profile";
+import CelestialMapping  from './Pages/CelestialMapping';
 import ProtectedRoute from "./components/ProtectedRoute";
+import StudentInputPage from "./Pages/StudentInput";
+
+
 
 function App() {
   return (
@@ -15,6 +19,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        
 
         {/* Protected routes */}
         <Route
@@ -38,6 +43,22 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Celestialmapping"
+          element={
+            <ProtectedRoute>
+              <CelestialMapping />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Input"
+          element={
+            <ProtectedRoute>
+              <StudentInputPage/>
             </ProtectedRoute>
           }
         />

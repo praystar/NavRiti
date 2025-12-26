@@ -86,7 +86,6 @@ export const submitStage1 = async (req: Request, res: Response) => {
       level: 'school',
       inputMethod: 'manual',
       schoolData,
-      analysis: staticPrediction,
       timestamp: new Date()
     });
 
@@ -158,7 +157,6 @@ export const submitStage2 = async (req: Request, res: Response) => {
       level: 'undergraduate',
       inputMethod: 'manual',
       ugData,
-      analysis: staticPrediction,
       timestamp: new Date()
     });
 
@@ -167,7 +165,6 @@ export const submitStage2 = async (req: Request, res: Response) => {
     res.status(201).json({
       status: "success",
       message: "Stage 2: Undergraduate student profile saved and analyzed.",
-      prediction: staticPrediction,
       saved_id: newProfile._id
     });
 
@@ -201,13 +198,6 @@ export const submitStudentProfileWithCV = async (req: Request, res: Response) =>
       });
     }
 
-    const staticPrediction = {
-      score: 86,
-      recommended_path: "Full Stack Development",
-      match_reason: "CV indicates strong technical skills and diverse project experience.",
-      flags: ["CV uploaded successfully", "Good academic record"]
-    };
-
     const newProfile = new StudentProfile({
       student_id: (crypto && (crypto as any).randomUUID) 
         ? (crypto as any).randomUUID() 
@@ -222,7 +212,6 @@ export const submitStudentProfileWithCV = async (req: Request, res: Response) =>
         size: file.size,
         uploadDate: new Date()
       },
-      analysis: staticPrediction,
       timestamp: new Date()
     });
 
@@ -231,7 +220,6 @@ export const submitStudentProfileWithCV = async (req: Request, res: Response) =>
     res.status(201).json({
       status: "success",
       message: "Student profile with CV saved and analyzed.",
-      prediction: staticPrediction,
       saved_id: newProfile._id
     });
 

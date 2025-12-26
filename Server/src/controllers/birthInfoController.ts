@@ -35,18 +35,8 @@ export const submitBirthInfo = async (req: Request, res: Response) => {
       }
     }
 
-    // Static prediction result (mock for now)
-    const staticPrediction = {
-      score: 84,
-      recommended_path: "Healthcare & Medicine",
-      match_reason: "Astrological chart indicates strong alignment with healing professions and service-oriented careers.",
-      flags: ["Favorable planetary positions", "Strong career house"],
-      astrological_insights: [
-        "Venus in 10th house suggests creative career path",
-        "Jupiter alignment indicates teaching or guidance roles",
-        "Strong Mercury position favors communication fields"
-      ]
-    };
+
+
 
     // Save birth info with personality traits
     const newBirthInfo = new BirthInfo({
@@ -57,7 +47,6 @@ export const submitBirthInfo = async (req: Request, res: Response) => {
       birthTime,
       birthPlace,
       personality_traits: personality_traits || undefined,
-      analysis: staticPrediction,
       timestamp: new Date()
     });
 
@@ -66,7 +55,6 @@ export const submitBirthInfo = async (req: Request, res: Response) => {
     res.status(201).json({
       status: "success",
       message: "Birth information saved and analyzed.",
-      prediction: staticPrediction,
       saved_id: newBirthInfo._id
     });
 

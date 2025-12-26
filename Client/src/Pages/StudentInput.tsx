@@ -8,23 +8,23 @@ const StudentInputPage = () => {
   
   // School (6-12) form data
   const [schoolData, setSchoolData] = useState({
-    favoritesubjects: '',
+    subject_preference: '',
+    extracurricular_activities: '',
     hobbies: '',
-    enjoy: '',
     achievements: '',
-    dream: ''
+    dream_career: ''
   });
 
   // Undergraduate manual input data
   const [ugData, setUgData] = useState({
     degree: '',
-    college: '',
-    year: '',
+    university: '',
+    current_year: '',
     cgpa: '',
     skills: '',
     experience: '',
     projects: '',
-    targetRoles: ''
+    preferred_roles: ''
   });
 
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -46,15 +46,78 @@ const StudentInputPage = () => {
     }
   };
 
-  const handleSubmit = () => {
-    const submissionData = {
-      name: studentName,
-      level: selectedLevel,
-      ...(selectedLevel === 'school' ? { schoolData } : 
-          ugInputMethod === 'manual' ? { ugData } : { cvFile })
-    };
-    console.log('Form submitted:', submissionData);
-    alert('Profile submitted successfully!');
+  const handleSubmit = async () => {
+    try {
+      const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API;
+      
+      if (!studentName || !selectedLevel) {
+        alert('Please fill in all required fields');
+        return;
+      }
+  
+      let response;
+  
+      // Case 1: School level -> use /stage1
+      if (selectedLevel === 'school') {
+        response = await fetch(`${SERVER_BASE}/student/stage1`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: studentName,
+            level: selectedLevel,
+            schoolData
+          })
+        });
+      }
+      // Case 2: Undergraduate with CV upload
+      else if (ugInputMethod === 'upload' && cvFile) {
+        const formData = new FormData();
+        formData.append('name', studentName);
+        formData.append('level', selectedLevel);
+        formData.append('cv', cvFile);
+  
+        response = await fetch(`${SERVER_BASE}/student/profile-cv`, {
+          method: 'POST',
+          body: formData
+        });
+      }
+      // Case 3: Undergraduate with manual input -> use /stage2
+      else if (ugInputMethod === 'manual') {
+        response = await fetch(`${SERVER_BASE}/student/stage2`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: studentName,
+            input_data: {
+              degree: ugData.degree,
+              university: ugData.university,
+              current_year: ugData.current_year,
+              cgpa: ugData.cgpa,
+              skills: ugData.skills,
+              experience: ugData.experience,
+              projects: ugData.projects,
+              preferred_roles: ugData.preferred_roles
+            }
+          })
+        });
+      } else {
+        alert('Please complete all required information');
+        return;
+      }
+  
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert('Profile submitted successfully!');
+        console.log('Server response:', result);
+      } else {
+        alert(`Error: ${result.message || 'Submission failed'}`);
+      }
+      
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Failed to submit profile. Please try again.');
+    }
   };
 
   return (
@@ -62,7 +125,7 @@ const StudentInputPage = () => {
   /* pt-20 adds 5rem / 80px of padding to the top */
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pt-30 pb-8">
       {/* Main Content */}
-      <AppNavbar />
+      
     <AppNavbar showAuthLinks={false} /> 
       
       <div className="max-w-4xl mx-auto px-4">
@@ -134,78 +197,88 @@ const StudentInputPage = () => {
                 </h3>
 
                 <div className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Favourite subjects
-                    </label>
-                    <input
-                      type="text"
-                      name="favoritesubjects"
-                      value={schoolData.favoritesubjects}
-                      onChange={handleSchoolDataChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
-                      placeholder="eg:Mathematics,Science,English,SocialStudies,Computer Science,Arts,Languages,Music,Writing,Sports"
-                    />
-                  </div>
+                  {/* Favourite subjects */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Favourite subjects
+  </label>
+  <input
+    type="text"
+    name="subject_preference"
+    value={schoolData.subject_preference}
+    onChange={handleSchoolDataChange}
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+    placeholder="Mathematics, Science, English, Computer Science"
+  />
+</div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Hobbies and Activities 
-                    </label>
-                    <input
-                      type="text"
-                      name="school"
-                      value={schoolData.hobbies}
-                      onChange={handleSchoolDataChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
-                      placeholder="Opt:Sports,Arts,Music,Coding,Reading,Gaming"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      What do you enjoy doing
-                    </label>
-                    <input
-                      type="text"
-                      name="board"
-                      value={schoolData.enjoy}
-                      onChange={handleSchoolDataChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
-                      placeholder="Describe your hobbies"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Achievements (optional)
-                    </label>
-                    <textarea
-                      name=""
-                      value={schoolData.achievements}
-                      onChange={handleSchoolDataChange}
-                      rows={2}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
-                      placeholder="Mathematics, Science, English, Social Studies"
-                    />
-                  </div>
+{/* Hobbies */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Hobbies and Activities
+  </label>
+  <input
+    type="text"
+    name="hobbies"
+    value={schoolData.hobbies}
+    onChange={handleSchoolDataChange}
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+    placeholder="Sports, Arts, Music, Coding"
+  />
+</div>
 
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Extracurricular Activities
-                    </label>
-                    <textarea
-                      name="extracurricular"
-                      value={schoolData.dream}
-                      onChange={handleSchoolDataChange}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
-                      placeholder="Sports, clubs, volunteering, etc."
-                    />
-                  </div>
+
+{/* Extracurricular */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Extracurricular Activities
+  </label>
+  <textarea
+    name="extracurricular_activities"
+    value={schoolData.extracurricular_activities}
+    onChange={handleSchoolDataChange}
+    rows={3}
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+    placeholder="Sports teams, clubs, volunteering"
+  />
+</div>
+
+{/* Achievements */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Achievements (optional)
+  </label>
+  <textarea
+    name="achievements"
+    value={schoolData.achievements}
+    onChange={handleSchoolDataChange}
+    rows={2}
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+    placeholder="Olympiads, competitions, awards"
+  />
+</div>
+
+{/* Dream career */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    What is your dream career?
+  </label>
+  <input
+    type="text"
+    name="dream_career"
+    value={schoolData.dream_career}
+    onChange={handleSchoolDataChange}
+    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
+    placeholder="Doctor, Engineer, Scientist, Artist"
+  />
+</div>
+
+
+
                 </div>
               </div>
+              
 
               <div className="flex justify-end">
                 <button
@@ -335,8 +408,8 @@ const StudentInputPage = () => {
                     </label>
                     <input
                       type="text"
-                      name="college"
-                      value={ugData.college}
+                      name="university"
+                      value={ugData.university}
                       onChange={handleUgDataChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
                       placeholder="Delhi Technological University"
@@ -350,8 +423,8 @@ const StudentInputPage = () => {
                       </label>
                       <input
                         type="text"
-                        name="year"
-                        value={ugData.year}
+                        name="current_year"
+                        value={ugData.current_year}
                         onChange={handleUgDataChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
                         placeholder="3"
@@ -448,8 +521,8 @@ const StudentInputPage = () => {
                     </label>
                     <input
                       type="text"
-                      name="targetRoles"
-                      value={ugData.targetRoles}
+                      name="preferred_roles"
+                      value={ugData.preferred_roles}
                       onChange={handleUgDataChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500"
                       placeholder="Software Engineer, Full Stack Developer, Backend Developer, Data Engineer"

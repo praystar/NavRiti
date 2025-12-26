@@ -6,6 +6,11 @@ import parentRoutes from './parentRoutes';
 import societalRoutes from './societalRoutes';
 import authRouter from './auth.router';
 
+import studentRoutes from './studentRoutes';
+
+import birthInfoRoutes from './birthInfoRoutes';
+
+
 const router = express.Router();
 
 // ----- GLOBAL RATE LIMIT (applies to all /api/* routes) -----
@@ -41,5 +46,7 @@ router.use('/auth', authRouter);
 // Mount application routers (these will be protected by global requireAuth in app.ts)
 router.use('/parent', aiLimiter, parentRoutes);
 router.use('/societal', aiLimiter, societalRoutes);
+router.use('/student', studentRoutes);
+router.use('/birthinfo', birthInfoRoutes);
 
 export default router;

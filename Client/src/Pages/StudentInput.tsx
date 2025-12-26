@@ -5,7 +5,7 @@ const StudentInputPage = () => {
   const [studentName, setStudentName] = useState('');
   const [selectedLevel, setSelectedLevel] = useState(''); // 'school' or 'undergraduate'
   const [ugInputMethod, setUgInputMethod] = useState(''); // 'manual' or 'upload'
-  
+
   // School (6-12) form data
   const [schoolData, setSchoolData] = useState({
     subject_preference: '',
@@ -14,7 +14,10 @@ const StudentInputPage = () => {
     achievements: '',
     dream_career: ''
   });
-
+  const [submitLocked, setSubmitLocked] = useState(false);
+  const [submitStatus, setSubmitStatus] =
+    useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  
   // Undergraduate manual input data
   const [ugData, setUgData] = useState({
     degree: '',
@@ -47,17 +50,21 @@ const StudentInputPage = () => {
   };
 
   const handleSubmit = async () => {
+    if (submitLocked || submitStatus === 'submitting') return;
+  
     try {
       const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API;
-      
+  
       if (!studentName || !selectedLevel) {
-        alert('Please fill in all required fields');
         return;
       }
   
+      setSubmitLocked(true);
+      setSubmitStatus('submitting');
+  
       let response;
   
-      // Case 1: School level -> use /stage1
+      // Case 1: School level
       if (selectedLevel === 'school') {
         response = await fetch(`${SERVER_BASE}/student/stage1`, {
           method: 'POST',
@@ -69,7 +76,7 @@ const StudentInputPage = () => {
           })
         });
       }
-      // Case 2: Undergraduate with CV upload
+      // Case 2: Undergraduate CV upload
       else if (ugInputMethod === 'upload' && cvFile) {
         const formData = new FormData();
         formData.append('name', studentName);
@@ -81,45 +88,40 @@ const StudentInputPage = () => {
           body: formData
         });
       }
-      // Case 3: Undergraduate with manual input -> use /stage2
+      // Case 3: Undergraduate manual
       else if (ugInputMethod === 'manual') {
         response = await fetch(`${SERVER_BASE}/student/stage2`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: studentName,
-            input_data: {
-              degree: ugData.degree,
-              university: ugData.university,
-              current_year: ugData.current_year,
-              cgpa: ugData.cgpa,
-              skills: ugData.skills,
-              experience: ugData.experience,
-              projects: ugData.projects,
-              preferred_roles: ugData.preferred_roles
-            }
+            input_data: ugData
           })
         });
       } else {
-        alert('Please complete all required information');
+        setSubmitStatus('error');
+        setSubmitLocked(false);
         return;
       }
   
-      const result = await response.json();
-      
-      if (response.ok) {
-        alert('Profile submitted successfully!');
-        console.log('Server response:', result);
-      } else {
-        alert(`Error: ${result.message || 'Submission failed'}`);
+      if (!response.ok) {
+        throw new Error('Submission failed');
       }
-      
-    } catch (error) {
-      console.error('Submission error:', error);
-      alert('Failed to submit profile. Please try again.');
+  
+      setSubmitStatus('success');
+  
+      //  Redirect after success
+      setTimeout(() => {
+        window.location.href = '/Celestialmapping';
+      }, 1200);
+  
+    } catch (err) {
+      console.error(err);
+      setSubmitStatus('error');
+      setSubmitLocked(false);
     }
   };
-
+  
   return (
     
   /* pt-20 adds 5rem / 80px of padding to the top */
@@ -281,12 +283,20 @@ const StudentInputPage = () => {
               
 
               <div className="flex justify-end">
-                <button
-                  onClick={handleSubmit}
-                  className="px-8 py-3 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors font-semibold"
-                >
-                  Submit Profile
-                </button>
+              <button
+  onClick={handleSubmit}
+  disabled={submitLocked}
+  className={`px-8 py-3 bg-teal-600 text-white rounded-md font-semibold transition-colors
+    ${submitLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-teal-700'}
+  `}
+>
+  {submitStatus === 'submitting'
+    ? 'Submitting...'
+    : submitStatus === 'success'
+      ? 'Submitted ✓'
+      : 'Submit Profile'}
+</button>
+
               </div>
             </div>
           )}
@@ -355,12 +365,20 @@ const StudentInputPage = () => {
               </div>
 
               <div className="flex justify-end">
-                <button
-                  onClick={handleSubmit}
-                  className="px-8 py-3 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors font-semibold"
-                >
-                  Submit Profile
-                </button>
+              <button
+  onClick={handleSubmit}
+  disabled={submitLocked}
+  className={`px-8 py-3 bg-teal-600 text-white rounded-md font-semibold transition-colors
+    ${submitLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-teal-700'}
+  `}
+>
+  {submitStatus === 'submitting'
+    ? 'Submitting...'
+    : submitStatus === 'success'
+      ? 'Submitted ✓'
+      : 'Submit Profile'}
+</button>
+
               </div>
             </div>
           )}
@@ -532,12 +550,20 @@ const StudentInputPage = () => {
               </div>
 
               <div className="flex justify-end">
-                <button
-                  onClick={handleSubmit}
-                  className="px-8 py-3 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors font-semibold"
-                >
-                  Submit Profile
-                </button>
+              <button
+  onClick={handleSubmit}
+  disabled={submitLocked}
+  className={`px-8 py-3 bg-teal-600 text-white rounded-md font-semibold transition-colors
+    ${submitLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-teal-700'}
+  `}
+>
+  {submitStatus === 'submitting'
+    ? 'Submitting...'
+    : submitStatus === 'success'
+      ? 'Submitted ✓'
+      : 'Submit Profile'}
+</button>
+
               </div>
             </div>
           )}

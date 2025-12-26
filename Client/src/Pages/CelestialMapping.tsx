@@ -11,14 +11,19 @@ function BirthInfoForm() {
   const [showPersonalityTraits, setShowPersonalityTraits] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [personalityTraits, setPersonalityTraits] = useState({
-    creative: 5,
-    analytical: 5,
-    technical: 5,
-    leadership: 5,
-    communication: 5,
-    healing: 5,
-    business: 5
+    creative: null,
+    analytical: null,
+    technical: null,
+    leadership: null,
+    communication: null,
+    healing: null,
+    business: null
   });
+
+const [submitLocked, setSubmitLocked] = useState(false);
+const [submitStatus, setSubmitStatus] =
+  useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
 
   const questions = [
     { key: 'creative', label: 'How creative are you?', description: 'Rate your creativity and artistic abilities' },
@@ -36,7 +41,7 @@ function BirthInfoForm() {
     try {
       // Validation
       if (!formData.birthDate || !formData.birthTime || !formData.birthPlace) {
-        alert('Please fill in all fields');
+        alert('Please fill required  fields');
         return;
       }
   
@@ -45,19 +50,21 @@ function BirthInfoForm() {
       
     } catch (error) {
       console.error('Submission error:', error);
-      alert('Failed to continue. Please try again.');
     }
   };
 
   const handleFinalSubmit = async () => {
+    if (submitLocked || submitStatus === 'submitting') return;
+  
+    setSubmitLocked(true);
+    setSubmitStatus('submitting');
+  
     try {
       const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API;
   
       const response = await fetch(`${SERVER_BASE}/birthinfo/submit`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           birthDate: formData.birthDate,
           birthTime: formData.birthTime,
@@ -67,27 +74,25 @@ function BirthInfoForm() {
       });
   
       const result = await response.json();
-      
-      if (response.ok && result.status === 'success') {
-        alert('Birth information submitted successfully! 🎉');
-        console.log('Server response:', result);
-        
-        if (result.prediction) {
-          console.log('Recommended Path:', result.prediction.recommended_path);
-          console.log('Score:', result.prediction.score);
-          console.log('Insights:', result.prediction.astrological_insights);
-        }
-        
-      } else {
-        alert(`Error: ${result.message || 'Submission failed'}`);
-        console.error('Error details:', result);
+  
+      if (!response.ok || result.status !== 'success') {
+        throw new Error('Submission failed');
       }
-      
+  
+      console.log('Server response:', result);
+      setSubmitStatus('success');
+  
+      setTimeout(() => {
+        window.location.href = '/ParentForm';
+      }, 1200);
+  
     } catch (error) {
-      console.error('Submission error:', error);
-      alert('Failed to connect to server. Please try again.');
+      console.error(error);
+      setSubmitStatus('error');
+      setSubmitLocked(false);
     }
   };
+  
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
@@ -256,16 +261,26 @@ function BirthInfoForm() {
                     Previous
                   </button>
 
-                  <button
-                    onClick={handleNext}
-                    className="flex-1 flex items-center justify-center gap-2 bg-teal-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-sm"
-                  >
-                    {currentQuestionIndex === questions.length - 1 ? 'Submit' : 'Next'}
-                    {currentQuestionIndex < questions.length - 1 && <ChevronRight className="w-4 h-4" />}
-                  </button>
-                </div>
+                 
+                <button
+                  onClick={handleNext}
+                  disabled={submitLocked}
+                  className={`flex-1 flex items-center justify-center gap-2 bg-teal-600 text-white py-3 px-6 rounded-lg ${
+                    submitLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-teal-700'
+                  }`}
+                >
+                  {submitStatus === 'submitting'
+                    ? 'Submitting...'
+                    : submitStatus === 'success'
+                      ? 'Submitted '
+                      : currentQuestionIndex === questions.length - 1
+                        ? 'Submit'
+                        : 'Next'}
+                  {currentQuestionIndex < questions.length - 1 && <ChevronRight />}
+                </button>
               </div>
             </div>
+          </div>
           )}
         </div>
       </div>

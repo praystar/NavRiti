@@ -1,7 +1,9 @@
 fastapi
+gunicorn
 pydantic
 geopy
 timezonefinder
 pytz
-pyswisseph
+pyswisseph==2.10.3.2
 python-dotenv
+

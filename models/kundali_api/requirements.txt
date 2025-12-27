@@ -1,0 +1,7 @@
+fastapi
+pydantic
+geopy
+timezonefinder
+pytz
+pyswisseph
+python-dotenv

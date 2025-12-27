@@ -8,7 +8,7 @@ import tempfile
 import os
 
 # Import the existing predictor
-from models.career_api.studentlogicfinal import NaviRitiCareerPredictor
+from studentlogicfinal import NaviRitiCareerPredictor
 
 app = FastAPI(title="NavRiti FastAPI Backend")
 

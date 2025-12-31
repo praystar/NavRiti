@@ -1,69 +1,92 @@
-
-// 2. UPDATED CONTROLLER (server/controllers/birthInfoController.ts)
-// ============================================
 import { Request, Response } from 'express';
 import BirthInfo from '../models/BirthInfo';
+import { v4 as uuidv4 } from 'uuid';
 
-export const submitBirthInfo = async (req: Request, res: Response) => {
+export const analyzeBirthInfo = async (req: Request, res: Response) => {
   try {
-    const { birthDate, birthTime, birthPlace, personality_traits } = req.body;
-
+    // Get data from request
+    const { birth_date, birth_time, birth_place, personality_traits } = req.body;
+    
     // Validation
-    if (!birthDate || !birthTime || !birthPlace) {
-      return res.status(400).json({ 
+    if (!birth_date || !birth_time || !birth_place) {
+      return res.status(400).json({
         status: "error",
-        message: "All fields (birthDate, birthTime, birthPlace) are required" 
+        message: "birth_date, birth_time, and birth_place are required"
       });
     }
-
-    // Validate personality traits if provided
-    if (personality_traits) {
-      const requiredTraits = ['creative', 'analytical', 'technical', 'leadership', 'communication', 'healing', 'business'];
-      for (const trait of requiredTraits) {
-        if (personality_traits[trait] === undefined) {
-          return res.status(400).json({
-            status: "error",
-            message: `Missing personality trait: ${trait}`
-          });
-        }
-        if (personality_traits[trait] < 1 || personality_traits[trait] > 10) {
-          return res.status(400).json({
-            status: "error",
-            message: `Personality trait ${trait} must be between 1 and 10`
-          });
-        }
+    
+    // Generate unique ID
+    const birth_id = uuidv4();
+    
+    // Prepare request for Kundali API
+    const kundaliRequest = {
+      birth_date,
+      birth_time,
+      birth_place,
+      ...(personality_traits && { personality_traits })
+    };
+    
+    // Call Kundali API
+    let kundaliResponse;
+    try {
+      const response = await fetch('https://navriti-the-new-direction-1.onrender.com/kundali', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(kundaliRequest),
+      });
+      
+      if (response.ok) {
+        kundaliResponse = await response.json();
+      } else {
+        kundaliResponse = {
+          error: `API returned ${response.status}`,
+          requested_data: kundaliRequest
+        };
       }
+    } catch (error: any) {
+      kundaliResponse = {
+        error: error.message,
+        requested_data: kundaliRequest
+      };
     }
-
-
-
-
-    // Save birth info with personality traits
-    const newBirthInfo = new BirthInfo({
-      birth_id: (crypto && (crypto as any).randomUUID) 
-        ? (crypto as any).randomUUID() 
-        : `${Date.now()}-${Math.random()}`,
-      birthDate,
-      birthTime,
-      birthPlace,
-      personality_traits: personality_traits || undefined,
+    
+    // Create document with COMPLETE input and COMPLETE output
+    const birthInfoData = {
+      birth_id,
+      // Complete input
+      input: {
+        birth_date,
+        birth_time,
+        birth_place,
+        ...(personality_traits && { personality_traits })
+      },
+      // Complete output from Kundali API
+      output: kundaliResponse,
       timestamp: new Date()
+    };
+    
+    // Save to MongoDB
+    const savedDoc = await BirthInfo.create(birthInfoData);
+    
+    // Return COMPLETE output
+    return res.status(201).json({
+      status: kundaliResponse.error ? "partial_success" : "success",
+      message: kundaliResponse.error 
+        ? "Saved input data, but Kundali service had issues" 
+        : "Analysis complete",
+      data: {
+        analysis_id: birth_id,
+        database_id: savedDoc._id
+      },
+      // Return the complete Kundali API response
+      ...kundaliResponse
     });
-
-    await newBirthInfo.save();
-
-    res.status(201).json({
-      status: "success",
-      message: "Birth information saved and analyzed.",
-      saved_id: newBirthInfo._id
-    });
-
-  } catch (error) {
-    console.error("Error saving birth info:", error);
-    res.status(500).json({ 
+    
+  } catch (error: any) {
+    return res.status(500).json({
       status: "error",
-      message: "Server error processing request", 
-      error: (error as Error).message 
+      message: "Server error",
+      error: error.message
     });
   }
 };

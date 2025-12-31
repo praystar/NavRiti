@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 // School student interface
 interface ISchoolData {
+  grade?: number;
   subject_preference: string;
   extracurricular_activities: string;
   hobbies: string;
@@ -19,6 +20,19 @@ interface IUndergraduateData {
   experience: string;
   projects: string;
   preferred_roles: string;
+}
+
+// AI Result interface for better typing
+interface IAIResult {
+  stage?: string;
+  student_name?: string;
+  grade?: number;
+  ai_predictions?: any;
+  generated_at?: string;
+  ai_powered?: boolean;
+  parsed_successfully?: boolean;
+  cv_data?: any;
+  stage2_result?: any;
 }
 
 export interface IStudentProfile extends Document {
@@ -50,6 +64,9 @@ export interface IStudentProfile extends Document {
     flags: string[];
   };
   
+  // ✅ ADD THIS: AI Result field to store complete AI response
+  aiResult?: IAIResult;
+  
   timestamp: Date;
 }
 
@@ -69,6 +86,7 @@ const StudentProfileSchema: Schema = new Schema({
   
   // School data
   schoolData: {
+    grade: Number,
     subject_preference: String,
     extracurricular_activities: String,
     hobbies: String,
@@ -105,7 +123,18 @@ const StudentProfileSchema: Schema = new Schema({
     flags: [String]
   },
   
+  // ✅ ADD THIS: AI Result field to store complete AI response
+  aiResult: {
+    type: Schema.Types.Mixed, // Use Mixed type for flexible structure
+    required: false
+  },
+  
   timestamp: { type: Date, default: Date.now }
 });
+
+// Optional: Add indexes for better query performance
+StudentProfileSchema.index({ name: 1, timestamp: -1 });
+StudentProfileSchema.index({ level: 1 });
+StudentProfileSchema.index({ 'aiResult.generated_at': -1 });
 
 export default mongoose.model<IStudentProfile>('StudentProfile', StudentProfileSchema);

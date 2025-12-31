@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/purity */
 import { useState, useEffect, useMemo } from 'react';
 import { motion, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

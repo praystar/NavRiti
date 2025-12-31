@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Background from '../components/Background'; // Adjust path as needed

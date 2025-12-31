@@ -322,9 +322,12 @@ class KundaliGenerator:
         
         return career_analysis
     
-    def generate_kundali(self, birth_date, birth_time, birth_place):
-        """Generate complete kundali"""
-        personality_traits = {}
+    def generate_kundali(self, birth_date, birth_time, birth_place, personality_traits=None):
+        """Generate complete kundali.
+
+        If `personality_traits` (dict) is provided, it will be used directly.
+        Otherwise the method falls back to interactive `get_personality_traits()`.
+        """
 
         try:
             # Get coordinates
@@ -380,7 +383,11 @@ class KundaliGenerator:
             
             # Get ascendant nakshatra
             asc_nakshatra, asc_pada = self.get_nakshatra(asc_sidereal)
-            personality_traits = self.get_personality_traits()
+
+            # Use provided
+            #  personality traits if passed, otherwise fall back
+            if personality_traits is None:
+                personality_traits = self.get_personality_traits()
 
             # Analyze career potential
             career_analysis = self.analyze_career_potential(

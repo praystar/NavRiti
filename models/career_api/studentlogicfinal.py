@@ -3,7 +3,11 @@ import os
 import re
 from datetime import datetime
 from typing import Dict, List, Any
+from dotenv import load_dotenv
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 # Handle both old and new Google AI packages
 try:
     from google import genai
@@ -30,6 +34,10 @@ except ImportError:
 
 # Configure API
 API_KEY = os.getenv("GOOGLE_API_KEY")
+
+assert API_KEY, "❌ GOOGLE_API_KEY not loaded from .env"
+print("✅ Gemini API key loaded correctly from .env")
+
 if not API_KEY:
     print("⚠️ WARNING: GOOGLE_API_KEY not found in environment variables.")
     print("   Set it with: export GOOGLE_API_KEY='your-key-here'")

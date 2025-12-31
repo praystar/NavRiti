@@ -1,0 +1,11 @@
+fastapi
+gunicorn
+uvicorn
+pydantic
+geopy
+timezonefinder
+pytz
+pyswisseph==2.10.3.2
+python-dotenv
+
+

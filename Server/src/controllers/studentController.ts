@@ -1,234 +1,284 @@
-// ============================================
-// CONTROLLER (server/controllers/studentController.ts)
-// ============================================
 import { Request, Response } from 'express';
 import StudentProfile from '../models/StudentProfile';
 import multer from 'multer';
 import path from 'path';
+import axios from 'axios';
+import fs from 'fs';
+import FormData from 'form-data';
 
-// Configure multer for CV uploads
+
+// const AI_BASE_URL = 'https://navriti-the-new-direction-2.onrender.com';
+const AI_BASE_URL = 'http://localhost:8001';
+
+
+/* =========================
+   Multer Config (CV Upload)
+========================= */
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/cvs/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'cv-' + uniqueSuffix + path.extname(file.originalname));
+  destination: (_req, _file, cb) => cb(null, 'uploads/cvs/'),
+  filename: (_req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `cv-${unique}${path.extname(file.originalname)}`);
   }
 });
 
-const fileFilter = (req: any, file: any, cb: any) => {
-  if (file.mimetype === 'application/pdf') {
-    cb(null, true);
-  } else {
-    cb(new Error('Only PDF files are allowed'), false);
-  }
+const fileFilter = (_req: any, file: any, cb: any) => {
+  file.mimetype === 'application/pdf'
+    ? cb(null, true)
+    : cb(new Error('Only PDF files allowed'), false);
 };
 
-export const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
+export const upload = multer({
+  storage,
+  fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }
 });
-
-// STAGE 1: School student (6-12) submission
+const uploadDir = 'uploads/cvs';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('📁 Created uploads directory:', uploadDir);
+}
+/* =========================
+   STAGE 1 — School Student
+========================= */
 export const submitStage1 = async (req: Request, res: Response) => {
   try {
-    const { name, level, schoolData } = req.body;
+    const { name, schoolData } = req.body;
 
-    // Validation
-    if (!name) {
-      return res.status(400).json({ 
-        status: "error",
-        message: "Name is required" 
+    if (!name || !schoolData) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Name and schoolData are required'
       });
     }
 
-    if (level !== 'school') {
-      return res.status(400).json({ 
-        status: "error",
-        message: "Level must be 'school' for stage1" 
-      });
-    }
-
-    if (!schoolData) {
-      return res.status(400).json({ 
-        status: "error",
-        message: "School data is required" 
-      });
-    }
-
-    // Validate school data fields
-    const requiredSchoolFields = ['subject_preference', 'extracurricular_activities', 'hobbies']; 
-    for (const field of requiredSchoolFields) {
-      if (!schoolData[field]) {
-        return res.status(400).json({
-          status: "error",
-          message: `School data field '${field}' is required`
-        });
-      }
-    }
-
-    // Static prediction for school students
-    const staticPrediction = {
-      score: 82,
-      recommended_path: "Computer Science & Engineering",
-      match_reason: "Strong interest in technology subjects and problem-solving activities.",
-      flags: ["High academic potential", "Tech-oriented interests"]
+    // Prepare data for AI (convert comma-separated strings to arrays)
+    const aiPayload = {
+      name,
+      grade: schoolData.grade,
+      subject_preferences: schoolData.subject_preference 
+        ? schoolData.subject_preference.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [],
+      extracurricular_activities: schoolData.extracurricular_activities
+        ? schoolData.extracurricular_activities.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [],
+      hobbies: schoolData.hobbies || '',
+      achievements: schoolData.achievements || '',
+      dream_career: schoolData.dream_career || ''
     };
 
-    // Save school student profile
-    const newProfile = new StudentProfile({
-      student_id: (crypto && (crypto as any).randomUUID) 
-        ? (crypto as any).randomUUID() 
-        : `${Date.now()}-${Math.random()}`,
+    console.log('Sending to AI:', aiPayload);
+
+    // Call FastAPI Stage1
+    const aiResponse = await axios.post(`${AI_BASE_URL}/stage1`, aiPayload);
+
+    // Persist to DB (use manual inputMethod as per schema enum)
+    const profile = new StudentProfile({
+      student_id: crypto.randomUUID(),
       name,
       level: 'school',
-      inputMethod: 'manual',
-      schoolData,
+      inputMethod: 'manual', // Changed from 'api' to 'manual' to match enum
+      schoolData: {
+        subject_preference: schoolData.subject_preference || '',
+        extracurricular_activities: schoolData.extracurricular_activities || '',
+        hobbies: schoolData.hobbies || '',
+        achievements: schoolData.achievements || '',
+        dream_career: schoolData.dream_career || ''
+      },
+      aiResult: aiResponse.data,
       timestamp: new Date()
     });
 
-    await newProfile.save();
+    await profile.save();
 
-    res.status(201).json({
-      status: "success",
-      message: "Stage 1: School student profile saved and analyzed.",
-      prediction: staticPrediction,
-      saved_id: newProfile._id
+    return res.status(201).json({
+      status: 'success',
+      message: 'Stage 1 analysis completed',
+      ai_result: aiResponse.data,
+      saved_id: profile._id
     });
 
-  } catch (error) {
-    console.error("Error in stage1:", error);
-    res.status(500).json({ 
-      status: "error",
-      message: "Server error processing stage1 request", 
-      error: (error as Error).message 
+  } catch (err: any) {
+    console.error('Stage1 Error:', err?.response?.data || err.message);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Stage1 AI processing failed',
+      error: err?.response?.data || err.message
     });
   }
 };
 
-// STAGE 2: Undergraduate student (manual input) submission
+/* =========================
+   STAGE 2 — UG (Manual)
+========================= */
 export const submitStage2 = async (req: Request, res: Response) => {
   try {
     const { name, input_data } = req.body;
 
-    // Validation
-    if (!name) {
-      return res.status(400).json({ 
-        status: "error",
-        message: "Name is required" 
+    if (!name || !input_data) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Name and input_data are required'
       });
     }
 
-    if (!input_data) {
-      return res.status(400).json({ 
-        status: "error",
-        message: "Input data is required for stage2" 
-      });
-    }
-
-    // Map input_data fields to ugData structure
-    const ugData = {
-      degree: input_data.degree || '',
-      university: input_data.university || '',
-      current_year: input_data.current_year || '',
-      cgpa: input_data.cgpa || '',
-      skills: input_data.skills || '',
-      experience: input_data.experience || '',
-      projects: input_data.projects || '',
-      preferred_roles: input_data.preferred_roles || ''
+    // Prepare data for AI (convert comma-separated strings to arrays)
+    const aiInputData = {
+      ...input_data,
+      skills: input_data.skills 
+        ? input_data.skills.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [],
+      projects: input_data.projects
+        ? input_data.projects.split(',').map((p: string) => p.trim()).filter(Boolean)
+        : [],
+      preferred_roles: input_data.preferred_roles
+        ? input_data.preferred_roles.split(',').map((r: string) => r.trim()).filter(Boolean)
+        : []
     };
 
-    // Static prediction for undergraduate students
-    const staticPrediction = {
-      score: 88,
-      recommended_path: "Software Engineering",
-      match_reason: "Excellent technical skills and relevant project experience align with software development roles.",
-      flags: ["Strong technical background", "Relevant project portfolio"]
-    };
+    // Call FastAPI Stage2
+    const aiResponse = await axios.post(`${AI_BASE_URL}/stage2`, {
+      name,
+      input_data: aiInputData
+    });
 
-    // Save undergraduate student profile
-    const newProfile = new StudentProfile({
-      student_id: (crypto && (crypto as any).randomUUID) 
-        ? (crypto as any).randomUUID() 
-        : `${Date.now()}-${Math.random()}`,
+    const profile = new StudentProfile({
+      student_id: crypto.randomUUID(),
       name,
       level: 'undergraduate',
       inputMethod: 'manual',
-      ugData,
+      ugData: input_data, // Store original string data
+      aiResult: aiResponse.data,
       timestamp: new Date()
     });
 
-    await newProfile.save();
+    await profile.save();
 
-    res.status(201).json({
-      status: "success",
-      message: "Stage 2: Undergraduate student profile saved and analyzed.",
-      saved_id: newProfile._id
+    return res.status(201).json({
+      status: 'success',
+      message: 'Stage 2 analysis completed',
+      ai_result: aiResponse.data,
+      saved_id: profile._id
     });
 
-  } catch (error) {
-    console.error("Error in stage2:", error);
-    res.status(500).json({ 
-      status: "error",
-      message: "Server error processing stage2 request", 
-      error: (error as Error).message 
+  } catch (err: any) {
+    console.error('Stage2 Error:', err?.response?.data || err.message);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Stage2 AI processing failed',
+      error: err?.response?.data || err.message
     });
   }
 };
 
-// CV Upload for undergraduate students
+/* =========================
+   STAGE 2 — UG (CV Upload)
+========================= */
+/* =========================
+   STAGE 2 — UG (CV Upload)
+========================= */
 export const submitStudentProfileWithCV = async (req: Request, res: Response) => {
   try {
+    console.log('🔍 DEBUG: Multer received file?', !!req.file);
+    console.log('🔍 DEBUG: File field name expected: "cv"');
+    console.log('🔍 DEBUG: File details:', req.file);
+    console.log('🔍 DEBUG: Request body:', req.body);
+    
     const { name } = req.body;
     const file = req.file;
 
-    if (!name ) {
-      return res.status(400).json({ 
-        status: "error",
-        message: "Name and level are required" 
+    if (!name || !file) {
+      console.log('❌ Missing name or file:', { name: !!name, file: !!file });
+      return res.status(400).json({
+        status: 'error',
+        message: 'Name and CV file are required'
       });
     }
 
-    if (!file) {
-      return res.status(400).json({ 
-        status: "error",
-        message: "CV file is required" 
-      });
-    }
+    console.log('✅ File received successfully:', file.originalname);
 
-    const newProfile = new StudentProfile({
-      student_id: (crypto && (crypto as any).randomUUID) 
-        ? (crypto as any).randomUUID() 
-        : `${Date.now()}-${Math.random()}`,
+    // Create FormData for Python backend
+    const form = new FormData();
+    
+    // IMPORTANT: Send the file with proper metadata
+    form.append('file', fs.createReadStream(file.path), {
+      filename: file.originalname,
+      contentType: file.mimetype
+    });
+
+    console.log('🚀 Sending to Python backend...');
+    console.log('FormData headers:', form.getHeaders());
+    
+    // Call FastAPI upload_cv WITH NAME AS QUERY PARAMETER
+    const aiResponse = await axios.post(
+      `${AI_BASE_URL}/upload_cv?name=${encodeURIComponent(name)}`, // <-- NAME IN QUERY
+      form,
+      { 
+        headers: {
+          'accept': 'application/json',
+          ...form.getHeaders()
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      }
+    );
+
+    console.log('✅ Python response status:', aiResponse.status);
+
+    // Save to database
+    const profile = new StudentProfile({
+      student_id: crypto.randomUUID(),
       name,
       level: 'undergraduate',
       inputMethod: 'upload',
       cvFile: {
         filename: file.filename,
         originalName: file.originalname,
-        mimetype: file.mimetype,
         size: file.size,
+        mimetype: file.mimetype,
         uploadDate: new Date()
       },
+      aiResult: aiResponse.data,
       timestamp: new Date()
     });
 
-    await newProfile.save();
+    await profile.save();
 
-    res.status(201).json({
-      status: "success",
-      message: "Student profile with CV saved and analyzed.",
-      saved_id: newProfile._id
+    // Clean up file after some time
+    setTimeout(() => {
+      fs.unlink(file.path, (err) => {
+        if (err) console.error('Error deleting file:', err);
+        else console.log('Cleaned up file:', file.path);
+      });
+    }, 30000);
+
+    return res.status(201).json({
+      status: 'success',
+      message: 'CV analyzed successfully',
+      ai_result: aiResponse.data,
+      saved_id: profile._id
     });
 
-  } catch (error) {
-    console.error("Error saving student profile with CV:", error);
-    res.status(500).json({ 
-      status: "error",
-      message: "Server error processing request", 
-      error: (error as Error).message 
+  } catch (err: any) {
+    console.error('❌ CV Upload Error Details:', {
+      message: err.message,
+      response: err.response?.data,
+      status: err.response?.status,
+      headers: err.response?.headers
+    });
+    
+    // Clean up file on error
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlink(req.file.path, (unlinkErr) => {
+        if (unlinkErr) console.error('Error deleting file:', unlinkErr);
+      });
+    }
+    
+    return res.status(500).json({
+      status: 'error',
+      message: 'CV analysis failed',
+      error: err.response?.data || err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 };

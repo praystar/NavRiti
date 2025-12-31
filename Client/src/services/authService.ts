@@ -149,6 +149,10 @@ export const registerNoOtp = async (
     throw error;
   }
 };
+export const isAuthenticated = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem(TOKEN_STORAGE_KEY);
+};
 
 const authService = {
   loginUser,
@@ -160,6 +164,7 @@ const authService = {
   requestPasswordReset,
   resetPassword,
   logoutUser,
+  isAuthenticated
 };
 
 export default authService;

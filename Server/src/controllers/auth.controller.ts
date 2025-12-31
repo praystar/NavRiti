@@ -456,3 +456,4 @@ export const me = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ status: 'error', message: 'Server error' });
   }
 };
+

@@ -20,7 +20,6 @@ import {
   Zap,
   Brain,
   Target,
-  ChevronRight
 } from "lucide-react";
 import AppNavbar from "../components/AppNavbar.tsx";
 import Background from "../components/Background.tsx";

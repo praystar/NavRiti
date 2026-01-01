@@ -138,6 +138,19 @@ useEffect(() => {
   }
 }, [serverResult]);
 
+const renderQuestionText = (text: string) => {
+  const parts = text.split(/\b(not)\b/gi);
+  return parts.map((part, index) => 
+    /\bnot\b/i.test(part) ? (
+      <strong key={index} className="bg-linear-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent font-bold">
+        {part.toUpperCase()}
+      </strong>
+    ) : (
+      <span key={index}>{part}</span>
+    )
+  );
+};
+
   const handleResponse = (questionIndex: number, value: number): void => {
     const key = `section_${currentSection.section}_q${questionIndex}`;
     setResponses(prev => ({
@@ -845,7 +858,7 @@ useEffect(() => {
                         </div>
                         <div className="flex-1">
                           <p className="text-base text-gray-300 group-hover:text-white transition-colors leading-relaxed">
-                            {question}
+                           {renderQuestionText(question)}
                           </p>
                         </div>
                       </div>

@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Shield, Calendar, Clock, 
   Star, Sparkles, Globe, Award, Target,
   CheckCircle, AlertCircle, Download, RefreshCw,
-  Zap, BarChart3, TrendingUp, Activity, Info
+  Zap, BarChart3, TrendingUp, Activity, Info,
+  LogOut
 } from 'lucide-react';
 import authService from '../services/authService.ts';
 import AppNavbar from '../components/AppNavbar';
@@ -24,6 +26,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchProfileData = async () => {
     try {
@@ -88,6 +91,24 @@ const ProfilePage = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logoutUser();
+    } catch {
+      // ignore errors
+    } finally {
+      // Clear the token from localStorage
+      localStorage.removeItem('authToken');
+      
+      // If we're already on the homepage, reload to trigger App component re-render
+      if (window.location.pathname === '/') {
+        window.location.reload();
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
   };
 
   // Calculate account age in days
@@ -185,7 +206,7 @@ const ProfilePage = () => {
         <div className="space-y-8">
           {/* Profile Card */}
           <div className="relative backdrop-blur-xl bg-gray-900/40 border border-indigo-500/20 rounded-3xl overflow-hidden shadow-2xl shadow-indigo-500/10">
-            {/* Profile Header - Changed background color */}
+            {/* Profile Header */}
             <div className="bg-gradient-to-r from-gray-900/60 to-gray-800/60 px-8 py-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-6">
@@ -223,6 +244,17 @@ const ProfilePage = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+                
+                {/* Logout Button in Profile Header */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-8 py-2 rounded-md backdrop-blur-sm bg-gradient-to-r from-rose-500/20 to-pink-500/20 border border-rose-500/30 text-rose-300 hover:text-white hover:border-rose-400/50 hover:bg-rose-500/30 transition-all duration-300 text-sm"
+                  >
+                    <LogOut className="w-4 h-6" />
+                    Logout 
+                  </button>
                 </div>
               </div>
             </div>
@@ -422,9 +454,6 @@ const ProfilePage = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Note about additional data */}
-             
                 </div>
               ) : (
                 <div className="text-center py-12">

@@ -657,7 +657,7 @@ export default function ParentForm() {
                             <div className="relative">
                               <div className="relative w-48 h-48 rounded-full border-4 border-emerald-500/30 bg-gradient-to-br from-gray-900 to-emerald-900/30 flex flex-col items-center justify-center">
                                 <span className="text-6xl font-black bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
-                                  {serverResult.data.prediction.score}%
+                                  {Math.round(serverResult.data.prediction.score)}%
                                 </span>
                                 <span className="text-sm font-medium text-emerald-300 uppercase tracking-wider mt-2">
                                   Celestial Match

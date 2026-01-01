@@ -1,6 +1,10 @@
 // src/routes/parentRoutes.ts
 import { Router } from 'express';
-import { submitParentPreferences } from '../controllers/parentController';
+import { 
+  submitParentPreferences, 
+  getParentPreference, 
+  retryParentAnalysis 
+} from '../controllers/parentController';
 
 const router = Router();
 
@@ -10,10 +14,10 @@ const router = Router();
  *   post:
  *     tags:
  *       - Parent Preferences
- *     summary: Submit parental career preference weights and receive AI-based recommendation
+ *     summary: Submit parental career preference weights and receive ML-based recommendation
  *     description: >
- *       Accepts structured parent preference data, validates required fields, stores it in MongoDB,
- *       and returns a static recommendation response (future-ready for ML model integration).
+ *       Accepts structured parent preference data, validates required fields, calls FastAPI ML service,
+ *       stores results in MongoDB, and returns career recommendations with explanations.
  *
  *     requestBody:
  *       required: true
@@ -34,38 +38,29 @@ const router = Router();
  *               parent_id:
  *                 type: string
  *                 example: "0fb2fd61-3c9c-46b4-87c4-b9d2fb18d111"
- *
  *               financial_stability_weight:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
- *                 format: float
  *                 example: 0.9
- *
  *               job_security_weight:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
- *                 format: float
  *                 example: 0.8
- *
  *               prestige_weight:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
- *                 format: float
  *                 example: 0.5
- *
  *               location_preference:
  *                 type: string
  *                 enum: [local, national, international, conditional]
  *                 example: "national"
- *
  *               migration_willingness:
  *                 type: string
  *                 enum: [yes, no, conditional]
  *                 example: "conditional"
- *
  *               budget_constraints:
  *                 type: object
  *                 required:
@@ -74,54 +69,41 @@ const router = Router();
  *                   max_tuition_per_year:
  *                     type: number
  *                     example: 25000
- *
  *               unacceptable_professions:
  *                 type: array
  *                 items:
  *                   type: string
  *                 example: ["politics", "defense"]
- *
  *               acceptable_professions:
  *                 type: array
  *                 items:
  *                   type: string
  *                 example: ["software engineering", "design", "medicine"]
- *
  *               parent_risk_tolerance:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
- *                 format: float
  *                 example: 0.3
- *
  *               weight_on_parent_layer:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 1
- *                 format: float
  *                 example: 0.5
  *
  *     responses:
  *       201:
- *         description: Preferences saved successfully and recommendation generated.
+ *         description: Preferences saved and ML analysis completed successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
- *               required:
- *                 - status
- *                 - message
- *                 - prediction
- *                 - saved_id
  *               properties:
  *                 status:
  *                   type: string
  *                   example: "success"
- *
  *                 message:
  *                   type: string
- *                   example: "Preferences saved and analyzed."
- *
+ *                   example: "Preferences saved and analyzed successfully."
  *                 prediction:
  *                   type: object
  *                   properties:
@@ -133,44 +115,80 @@ const router = Router();
  *                       example: "Software Engineering"
  *                     match_reason:
  *                       type: string
- *                       example: "High alignment with financial stability and low risk tolerance."
+ *                       example: "This career aligns strongly with parental priorities..."
  *                     flags:
  *                       type: array
  *                       items:
  *                         type: string
- *                       example: ["Matches budget constraints"]
- *
+ *                     top_5_careers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           career_id:
+ *                             type: string
+ *                           parent_score:
+ *                             type: number
  *                 saved_id:
  *                   type: string
- *                   example: "67ab9222d83a291833650cef"
+ *
+ *       202:
+ *         description: Preferences saved but ML analysis failed (data saved for retry)
  *
  *       400:
- *         description: Validation error (bad request)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: "error"
- *                 message:
- *                   type: string
- *                   example: "Validation failed: missing required field."
+ *         description: Validation error
  *
  *       500:
- *         description: Server error while saving parent preferences
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Server error processing request"
- *                 error:
- *                   type: string
+ *         description: Server error
  */
 router.post('/preferences', submitParentPreferences);
+
+/**
+ * @openapi
+ * /parent/preferences/{id}:
+ *   get:
+ *     tags:
+ *       - Parent Preferences
+ *     summary: Retrieve a saved parent preference by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preference found
+ *       404:
+ *         description: Preference not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/preferences/:id', getParentPreference);
+
+/**
+ * @openapi
+ * /parent/preferences/{id}/retry:
+ *   post:
+ *     tags:
+ *       - Parent Preferences
+ *     summary: Retry FastAPI analysis for a saved preference
+ *     description: >
+ *       Useful when initial analysis failed. Calls FastAPI again with saved data.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Analysis retried successfully
+ *       404:
+ *         description: Preference not found
+ *       500:
+ *         description: FastAPI still failing or server error
+ */
+router.post('/preferences/:id/retry', retryParentAnalysis);
 
 export default router;

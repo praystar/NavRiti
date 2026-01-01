@@ -3,14 +3,57 @@ import { Request, Response } from 'express';
 import SocietalAnalysis from '../models/SocietalAnalysis';
 import axios from 'axios';
 
-// FastAPI endpoint URL - adjust based on your deployment
-const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+// Define survey questions
+const surveyQuestions: SurveySection[] = [
+  {
+    section: "A",
+    title: "Social Influence",
+    icon: "Users",
+    color: "from-indigo-500 to-purple-500",
+    gradient: "bg-gradient-to-br from-indigo-500/20 to-purple-500/20",
+    questions: [
+      "Doctors or healthcare professionals inspire me to choose a medical career.",
+      "My friends choosing technology-related careers does not affect my career preferences.",
+      "If someone in my family or relatives works in government services, I feel encouraged to pursue a similar career.",
+      "When my friends show interest in medical professions, it influences my career thinking.",
+      "Technology professionals do not influence my career decisions.",
+      "If someone in my family works in technology, I feel encouraged to pursue a similar field."
+    ]
+  },
+  {
+    section: "B",
+    title: "Family & Community Impact",
+    icon: "Globe",
+    color: "from-emerald-500 to-teal-500",
+    gradient: "bg-gradient-to-br from-emerald-500/20 to-teal-500/20",
+    questions: [
+      "Friends preparing for government careers do not influence my career choice.",
+      "Family members in the medical field encourage me to consider healthcare careers.",
+      "Watching a respected government officer motivates me to consider government services.",
+      "Family members working in technology do not influence my career choice.",
+      "Doctors do not influence my career choice.",
+      "If many of my close friends choose technology-related careers, I feel motivated to consider the same."
+    ]
+  },
+  {
+    section: "C",
+    title: "Professional Inspiration",
+    icon: "Target",
+    color: "from-amber-500 to-orange-500",
+    gradient: "bg-gradient-to-br from-amber-500/20 to-orange-500/20",
+    questions: [
+      "Having family members or relatives in government services does not influence my interest in pursuing a government career.",
+      "My friends' interest in medical professions has no impact on my career decisions.",
+      "A successful technology professional inspires me to pursue a tech career.",
+      "Seeing my friends prepare for government service careers makes me consider that path.",
+      "A medical background in my family does not influence my career choice.", 
+      "Government officers do not motivate me to pursue government services."
+    ]
+  }
+];
 
-/**
- * POST /societal/analyze
- * Accepts an array of 18 Likert responses, calls FastAPI for analysis,
- * and saves both input and results to MongoDB.
- */
+const FASTAPI_URL = "https://societal-31jo.onrender.com";
+
 export const analyzeSocietal = async (req: Request, res: Response) => {
   let savedDocId: string | null = null;
   let fastApiSuccess = false;
@@ -26,8 +69,11 @@ export const analyzeSocietal = async (req: Request, res: Response) => {
       });
     }
 
-    // Extract the answers array from the nested structure
-    const answersArray = extractAnswersArray(inputPayload.responses);
+    // Create structured responses with questions
+    const structuredResponses = createStructuredResponses(inputPayload.responses);
+    
+    // Extract the answers array for the model
+    const answersArray = extractAnswersArray(structuredResponses);
 
     if (answersArray.length !== 18) {
       return res.status(400).json({
@@ -36,7 +82,7 @@ export const analyzeSocietal = async (req: Request, res: Response) => {
       });
     }
 
-    let formattedAnalysis: any = null;
+    let originalModelResponse: any = null;
     let fastApiError: string | null = null;
 
     // Try to call FastAPI recommendation endpoint
@@ -44,23 +90,10 @@ export const analyzeSocietal = async (req: Request, res: Response) => {
       const fastApiResponse = await axios.post(`${FASTAPI_URL}/recommend`, {
         answers: answersArray
       }, {
-        timeout: 10000 // 10 second timeout
+        timeout: 100000 // 10 second timeout
       });
 
-      const analysisResult = fastApiResponse.data;
-
-      // Transform the FastAPI response to match our expected format
-      formattedAnalysis = {
-        score: calculateOverallScore(analysisResult.domain_scores),
-        summary: analysisResult.gemini_explanation,
-        recommended_domains: analysisResult.recommended_domains,
-        domain_scores: analysisResult.domain_scores,
-        bias_scores: analysisResult.bias_scores,
-        reason: analysisResult.reason,
-        recommended_actions: generateRecommendedActions(analysisResult),
-        flags: generateFlags(analysisResult)
-      };
-
+      originalModelResponse = fastApiResponse.data;
       fastApiSuccess = true;
 
     } catch (fastApiErr) {
@@ -73,26 +106,26 @@ export const analyzeSocietal = async (req: Request, res: Response) => {
         fastApiError = (fastApiErr as Error).message;
       }
 
-      // Create fallback analysis when FastAPI fails
-      formattedAnalysis = {
-        score: 0,
-        summary: 'Analysis pending - FastAPI service unavailable',
-        recommended_domains: [],
-        domain_scores: {},
+      // Create fallback when FastAPI fails
+      originalModelResponse = {
         bias_scores: {},
+        domain_scores: {},
+        recommended_domains: [],
         reason: 'FastAPI analysis failed, data saved for retry',
-        recommended_actions: ['Retry analysis later'],
-        flags: ['fastapi_failure']
+        gemini_explanation: 'Analysis pending - FastAPI service unavailable'
       };
     }
 
-    // ALWAYS save to MongoDB, regardless of FastAPI success
+    // Save to MongoDB with complete data
     const doc = new SocietalAnalysis({
       input: {
         ...inputPayload,
+        responses: structuredResponses, // Now includes questions
         answersArray
       },
-      analysis: formattedAnalysis,
+      analysis: {
+        original_response: originalModelResponse, // Store full model response ONLY
+      },
       meta: {
         receivedAt: new Date().toISOString(),
         sourceIp: req.ip,
@@ -110,14 +143,18 @@ export const analyzeSocietal = async (req: Request, res: Response) => {
       return res.status(201).json({
         status: 'success',
         message: 'Analysis completed and saved to database.',
-        analysis: formattedAnalysis,
+        analysis: {
+          original_response: originalModelResponse // Return ONLY the model response
+        },
         saved_id: savedDocId
       });
     } else {
       return res.status(202).json({
         status: 'partial_success',
         message: 'Survey saved, but analysis failed. You can retry later.',
-        analysis: formattedAnalysis,
+        analysis: {
+          original_response: originalModelResponse
+        },
         saved_id: savedDocId,
         error: fastApiError
       });
@@ -145,100 +182,78 @@ export const analyzeSocietal = async (req: Request, res: Response) => {
 };
 
 /**
- * Helper: Extract answers from nested object structure to flat array
- * Maps: { A: {0: 4, 1: 3, ...}, B: {...}, C: {...} } -> [4, 3, ...]
+ * Helper: Create structured responses with questions
+ * Converts: { A: {0: 4, 1: 3, ...} } -> { A: {0: {question: "...", answer: 4}, 1: {...}}}
  */
-function extractAnswersArray(responses: Record<string, Record<string, number>>): number[] {
-  const sections = ['A', 'B', 'C'];
-  const questionsPerSection = 6;
-  const answersArray: number[] = [];
-
-  for (const section of sections) {
+function createStructuredResponses(responses: Record<string, Record<string, number>>): Record<string, Record<string, { question: string; answer: number }>> {
+  const structured: Record<string, Record<string, { question: string; answer: number }>> = {};
+  
+  // Map sections A, B, C
+  ['A', 'B', 'C'].forEach((section, sectionIndex) => {
     if (!responses[section]) {
       throw new Error(`Missing section ${section} in responses`);
     }
-
-    for (let i = 0; i < questionsPerSection; i++) {
-      const value = responses[section][i];
-      if (typeof value !== 'number' || value < 1 || value > 5) {
+    
+    structured[section] = {};
+    
+    // Find the survey section
+    const surveySection = surveyQuestions.find(s => s.section === section);
+    if (!surveySection) {
+      throw new Error(`No questions defined for section ${section}`);
+    }
+    
+    // Map each question index to question text and answer
+    Object.entries(responses[section]).forEach(([questionIndexStr, answer]) => {
+      const questionIndex = parseInt(questionIndexStr);
+      
+      if (questionIndex < 0 || questionIndex >= surveySection.questions.length) {
+        throw new Error(`Invalid question index ${questionIndex} for section ${section}`);
+      }
+      
+      if (typeof answer !== 'number' || answer < 1 || answer > 5) {
         throw new Error(
-          `Invalid response for section ${section}, question ${i}: expected number 1-5, got ${value}`
+          `Invalid answer for section ${section}, question ${questionIndex}: expected number 1-5, got ${answer}`
         );
       }
-      answersArray.push(value);
+      
+      structured[section][questionIndex] = {
+        question: surveySection.questions[questionIndex],
+        answer: answer
+      };
+    });
+  });
+  
+  return structured;
+}
+
+/**
+ * Helper: Extract flat answers array from structured responses for the model
+ */
+function extractAnswersArray(structuredResponses: Record<string, Record<string, { question: string; answer: number }>>): number[] {
+  const sections = ['A', 'B', 'C'];
+  const answersArray: number[] = [];
+  
+  for (const section of sections) {
+    const sectionResponses = structuredResponses[section];
+    
+    // Get answers in order (0, 1, 2, 3, 4, 5)
+    for (let i = 0; i < 6; i++) {
+      if (!sectionResponses[i]) {
+        throw new Error(`Missing answer for section ${section}, question ${i}`);
+      }
+      answersArray.push(sectionResponses[i].answer);
     }
   }
-
+  
   return answersArray;
 }
 
-/**
- * Helper: Calculate overall score from domain scores (0-100 scale)
- */
-function calculateOverallScore(domainScores: Record<string, number>): number {
-  const scores = Object.values(domainScores);
-  const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-  // Convert from 0-10 scale to 0-100 scale
-  return Math.round((avgScore / 10) * 100);
-}
-
-/**
- * Helper: Generate recommended actions based on analysis
- */
-function generateRecommendedActions(analysis: any): string[] {
-  const actions: string[] = [];
-  const topDomain = analysis.recommended_domains[0];
-
-  actions.push(`Explore career opportunities in ${topDomain}`);
-  actions.push('Connect with professionals in your recommended field');
-  
-  // Check for strong role model influence
-  const roleKeys = Object.keys(analysis.bias_scores).filter(key => key.includes('role'));
-  const hasStrongRoleModel = roleKeys.some(key => analysis.bias_scores[key] > 4);
-  
-  if (hasStrongRoleModel) {
-    actions.push('Leverage your role model connections for mentorship');
-  }
-  
-  actions.push('Research educational pathways in your aligned domain');
-  actions.push('Consider internship or shadowing opportunities');
-
-  return actions;
-}
-
-/**
- * Helper: Generate flags based on analysis patterns
- */
-function generateFlags(analysis: any): string[] {
-  const flags: string[] = [];
-  
-  // Check for conflicting influences
-  const biasScores = Object.values(analysis.bias_scores) as number[];
-  const variance = calculateVariance(biasScores);
-  
-  if (variance > 2) {
-    flags.push('high_variance_in_influences');
-  }
-
-  // Check if multiple domains are equally recommended
-  if (analysis.recommended_domains.length > 1) {
-    flags.push('multiple_equal_recommendations');
-  }
-
-  // Check for weak overall influence
-  const avgBias = biasScores.reduce((sum, val) => sum + val, 0) / biasScores.length;
-  if (avgBias < 3) {
-    flags.push('weak_overall_social_influence');
-  }
-
-  return flags;
-}
-
-/**
- * Helper: Calculate variance of an array
- */
-function calculateVariance(arr: number[]): number {
-  const mean = arr.reduce((sum, val) => sum + val, 0) / arr.length;
-  const squaredDiffs = arr.map(val => Math.pow(val - mean, 2));
-  return squaredDiffs.reduce((sum, val) => sum + val, 0) / arr.length;
+// Type definitions for survey sections
+interface SurveySection {
+  section: string;
+  title: string;
+  icon: string;
+  color: string;
+  gradient: string;
+  questions: string[];
 }

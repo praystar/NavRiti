@@ -6,19 +6,12 @@ export interface ISocietalAnalysis extends Document {
     survey_id?: string;
     timestamp?: string;
     source?: string;
-    responses: Record<string, Record<string, number>>;
-    answersArray: number[]; // Flattened array of 18 responses
+    responses: Record<string, Record<string, { question: string; answer: number }>>;
+    answersArray: number[];
     meta?: any;
   };
   analysis: {
-    score: number;
-    summary: string;
-    recommended_domains: string[];
-    domain_scores: Record<string, number>;
-    bias_scores: Record<string, number>;
-    reason: string;
-    recommended_actions: string[];
-    flags: string[];
+    original_response: any; // ONLY the complete model response
   };
   meta?: {
     receivedAt: string;
@@ -40,14 +33,7 @@ const SocietalAnalysisSchema: Schema = new Schema({
     meta: { type: Schema.Types.Mixed }
   },
   analysis: {
-    score: { type: Number, required: true },
-    summary: { type: String, required: true },
-    recommended_domains: [{ type: String }],
-    domain_scores: { type: Schema.Types.Mixed },
-    bias_scores: { type: Schema.Types.Mixed },
-    reason: { type: String },
-    recommended_actions: [{ type: String }],
-    flags: [{ type: String }]
+    original_response: { type: Schema.Types.Mixed, required: true } // Only store model response
   },
   meta: {
     receivedAt: { type: String },
@@ -58,7 +44,7 @@ const SocietalAnalysisSchema: Schema = new Schema({
   },
   timestamp: { type: Date, default: Date.now }
 }, {
-  timestamps: true // Automatically adds createdAt and updatedAt
+  timestamps: true
 });
 
 // Index for efficient querying

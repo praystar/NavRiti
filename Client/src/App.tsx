@@ -11,14 +11,23 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import StudentInputPage from "./Pages/StudentInput";
 import Loader from "./Pages/Loader";
 import NotFound from "./Pages/NotFound";
+import CursorEffect from './components/CursorEffect';
+
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
-
+  
   useEffect(() => {
-
+    document.body.classList.add('cursor-effect-active');
+    
+    return () => {
+      document.body.classList.remove('cursor-effect-active');
+    };
+  }, []);
+  
+   
+  useEffect(() => {
     const timer = setTimeout(() => {
-      console.log("✅ Loader finished after 3 seconds");
       setIsLoading(false);
     }, 2400);
 
@@ -28,64 +37,72 @@ function App() {
   }, []);
 
   if (isLoading) {
-    return <Loader />;
+    return (
+      <>
+        <CursorEffect />
+        <Loader />
+      </>
+    );
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/Loader" element={<Loader />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+    <>
+      <CursorEffect />
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
+         
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
-        {/* Protected routes */}
-        <Route
-          path="/ParentForm"
-          element={
-            <ProtectedRoute>
-              <ParentForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/Societal"
-          element={
-            <ProtectedRoute>
-              <Societal />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected routes */}
+          <Route
+            path="/ParentForm"
+            element={
+              <ProtectedRoute>
+                <ParentForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/Societal"
+            element={
+              <ProtectedRoute>
+                <Societal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/Celestialmapping"
-          element={
-            <ProtectedRoute>
-              <CelestialMapping />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/Input"
-          element={
-            <ProtectedRoute>
-              <StudentInputPage />
-            </ProtectedRoute>
-          }
-        />
-        {/* 404 Catch-all */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+          <Route
+            path="/Celestialmapping"
+            element={
+              <ProtectedRoute>
+                <CelestialMapping />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/Input"
+            element={
+              <ProtectedRoute>
+                <StudentInputPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* 404 Catch-all */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </>
   );
 }
 

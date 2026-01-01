@@ -179,10 +179,10 @@ export const submitStage2 = async (req: Request, res: Response) => {
 ========================= */
 export const submitStudentProfileWithCV = async (req: Request, res: Response) => {
   try {
-    console.log('🔍 DEBUG: Multer received file?', !!req.file);
-    console.log('🔍 DEBUG: File field name expected: "cv"');
-    console.log('🔍 DEBUG: File details:', req.file);
-    console.log('🔍 DEBUG: Request body:', req.body);
+    // console.log('🔍 DEBUG: Multer received file?', !!req.file);
+    // console.log('🔍 DEBUG: File field name expected: "cv"');
+    // console.log('🔍 DEBUG: File details:', req.file);
+    // console.log('🔍 DEBUG: Request body:', req.body);
     
     const { name } = req.body;
     const file = req.file;

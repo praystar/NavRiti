@@ -1,18 +1,20 @@
-import { useState, useMemo } from 'react';
+/* eslint-disable react-hooks/purity */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Compass, 
   Menu, 
   X, 
   User, 
-  LogOut, 
   Users, 
   Globe, 
   Sparkles, 
   Star, 
+  Home, 
+  LayoutDashboard,
   ChevronRight
 } from 'lucide-react';
-import authService from '../services/authService.ts';
 
 interface AppNavbarProps {
   showAuthLinks?: boolean;
@@ -22,24 +24,41 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const navigate = useNavigate();
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
- const handleLogout = async () => {
-  try {
-    await authService.logoutUser();
-  } catch {
-    // ignore
-  } finally {
-    // Clear the token from localStorage
-    localStorage.removeItem('authToken');
-    
-    // If we're already on the homepage, reload to trigger App component re-render
-    if (window.location.pathname === '/') {
-      window.location.reload();
-    } else {
-      navigate('/', { replace: true });
-    }
-  }
-};
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isMenuOpen && 
+        mobileMenuRef.current && 
+        !mobileMenuRef.current.contains(event.target as Node) &&
+        // Don't close if clicking the menu button itself
+        !(event.target as Element).closest('.mobile-menu-button')
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  // Close mobile menu on escape key press
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isMenuOpen]);
 
   // FIX: useMemo ensures star positions are calculated only ONCE.
   // This prevents them from jumping when you hover or type.
@@ -53,6 +72,18 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
   }, []);
 
   const navLinks = [
+    { 
+      name: 'Home', 
+      path: '/', 
+      icon: <Home className="w-4 h-4" />,
+      description: 'Welcome Portal'
+    },
+    { 
+      name: 'Dashboard', 
+      path: '/Dashboard', 
+      icon: <LayoutDashboard className="w-4 h-4" />,
+      description: 'Overview Panel'
+    },
     { 
       name: 'Input', 
       path: '/Input', 
@@ -156,6 +187,30 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
           border-radius: 50%;
           box-shadow: 0 0 6px 1px rgba(165, 180, 252, 0.7);
         }
+
+        /* Custom scrollbar for mobile menu */
+        .mobile-menu-scrollable {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(99, 102, 241, 0.5) rgba(30, 41, 59, 0.1);
+        }
+        
+        .mobile-menu-scrollable::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .mobile-menu-scrollable::-webkit-scrollbar-track {
+          background: rgba(30, 41, 59, 0.1);
+          border-radius: 2px;
+        }
+        
+        .mobile-menu-scrollable::-webkit-scrollbar-thumb {
+          background: rgba(99, 102, 241, 0.5);
+          border-radius: 2px;
+        }
+        
+        .mobile-menu-scrollable::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.7);
+        }
       `}</style>
       
       <nav className="fixed top-0 w-full backdrop-blur-xl bg-gray-900/95 border-b border-indigo-500/20 z-50">
@@ -186,12 +241,9 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur-md opacity-70 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
                 <div className="relative w-10 h-10 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-xl flex items-center justify-center transition-all duration-300">
-                  {/* Applied compass-3d and group-hover:spin as requested */}
                   <Compass className="w-6 h-6 text-white animate-compass-3d group-hover:animate-compass-spin" />
-                  
                   <div className="absolute inset-0 rounded-xl border border-indigo-400/30 animate-pulse group-hover:border-indigo-300/50 transition-colors duration-300"></div>
                 </div>
-                {/* Yellow dot removed from here */}
               </div>
               
               <div className="flex flex-col">
@@ -204,8 +256,8 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
               </div>
             </a>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-1">
+            {/* Desktop Navigation - Now shows only on screens 1024px and above */}
+            <div className="hidden lg:flex items-center space-x-1">
               {navLinks.map((link) => (
                 <a
                   key={link.name}
@@ -248,60 +300,82 @@ const AppNavbar = ({ showAuthLinks = true }: AppNavbarProps) => {
                   }`}></div>
                 </a>
               ))}
-              
-              {!showAuthLinks && (
-                <button
-                  onClick={handleLogout}
-                  className="relative ml-2 px-4 py-2 rounded-lg backdrop-blur-sm bg-gradient-to-r from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-400/30 transition-all duration-300 group/logout"
-                >
-                  <div className="relative z-10 flex items-center space-x-2">
-                    <LogOut className="w-4 h-4 text-rose-400" />
-                    <span className="font-medium text-rose-300">Logout</span>
-                  </div>
-                </button>
-              )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <div className="md:hidden">
+            {/* Mobile Menu Button - Now shows below 1024px */}
+            <div className="lg:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="relative p-2 rounded-lg backdrop-blur-sm bg-white/5 border border-white/10 text-gray-300"
+                className="mobile-menu-button relative p-2 rounded-lg backdrop-blur-sm bg-white/5 border border-white/10 text-gray-300 transition-all hover:bg-white/10 hover:border-white/20"
+                aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={isMenuOpen}
               >
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isMenuOpen ? (
+                  <X className="w-6 h-6 transition-transform duration-300" />
+                ) : (
+                  <Menu className="w-6 h-6 transition-transform duration-300" />
+                )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Shows below 1024px */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-full w-full backdrop-blur-xl bg-gray-900/95 border-b border-indigo-500/20">
-            <div className="px-4 py-6 space-y-2">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-between p-4 rounded-xl backdrop-blur-sm bg-white/5 border border-white/5 hover:border-indigo-500/30 transition-all group/mobile"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
-                      {link.icon}
+          <div className="lg:hidden">
+            {/* Backdrop overlay */}
+            <div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
+              onClick={() => setIsMenuOpen(false)}
+              aria-hidden="true"
+            />
+            
+            {/* Mobile menu panel */}
+            <div 
+              ref={mobileMenuRef}
+              className="fixed top-16 right-0 left-0 z-50 transform transition-transform duration-300 ease-out bg-gray-900 border-b border-indigo-500/20 shadow-2xl"
+            >
+              <div 
+                className="mobile-menu-scrollable max-h-[calc(100vh-4rem)] overflow-y-auto px-4 py-6 space-y-2"
+                style={{ scrollBehavior: 'smooth' }}
+              >
+                {navLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between p-4 rounded-xl backdrop-blur-sm bg-white/5 border border-white/5 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all duration-200 group/mobile active:scale-95"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover/mobile:bg-indigo-500/20 transition-colors duration-200">
+                        {link.icon}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-white group-hover/mobile:text-indigo-200 transition-colors duration-200">
+                          {link.name}
+                        </span>
+                        <span className="text-xs text-gray-400 group-hover/mobile:text-gray-300 transition-colors duration-200">
+                          {link.description}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-white">{link.name}</span>
-                      <span className="text-xs text-gray-400">{link.description}</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-indigo-400 opacity-0 group-hover/mobile:opacity-100 transition-opacity" />
-                </a>
-              ))}
+                    <ChevronRight className="w-5 h-5 text-indigo-400 opacity-0 group-hover/mobile:opacity-100 transition-all duration-200 transform group-hover/mobile:translate-x-1" />
+                  </a>
+                ))}
+              </div>
+              
+              {/* Close hint for mobile users */}
+              <div className="px-4 py-3 border-t border-white/5 text-center">
+                <span className="text-xs text-gray-500">
+                  Tap outside to close
+                </span>
+              </div>
             </div>
           </div>
         )}
       </nav>
       
+      {/* Spacer to prevent content from being hidden behind fixed navbar */}
       <div className="h-16"></div>
     </>
   );

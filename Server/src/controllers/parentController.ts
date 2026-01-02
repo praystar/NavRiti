@@ -1,39 +1,60 @@
 import { Request, Response } from 'express';
 import ParentPreference from '../models/ParentPreference';
+import axios from 'axios';
 
 export const submitParentPreferences = async (req: Request, res: Response) => {
   try {
-    const data = req.body;
+    const userInput = req.body;
+    const aiEndpoint = 'http://localhost:8002/rescore-parent';
 
-    // Static prediction result (mock for now)
-    const staticPrediction = {
-      score: 85,
-      recommended_path: "Software Engineering",
-      match_reason: "High alignment with financial stability and low risk tolerance.",
-      flags: ["Matches budget constraints"]
-    };
+    // Step 1: Forward EXACT request to AI server
+    let aiResponse;
+    let aiStatus = 200;
+    
+    try {
+      const response = await axios.post(aiEndpoint, userInput, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      aiResponse = response.data;
+      aiStatus = response.status;
+      
+    } catch (aiError: any) {
+      console.error("AI Server Error:", aiError);
+      
+      // If AI server fails, return the error
+      return res.status(aiError.response?.status || 502).json({
+        status: "error",
+        message: "AI service request failed",
+        error: aiError.message,
+        ai_response: aiError.response?.data || null
+      });
+    }
 
-    // Save BOTH input data + prediction
+    // Step 2: Save EXACT input and EXACT output
     const newPreference = new ParentPreference({
-      ...data,
-      analysis: staticPrediction,
-      timestamp: new Date()
+      user_input: userInput,        // Save user input exactly as received
+      ai_output: aiResponse,        // Save AI output exactly as received
+      ai_server_status: aiStatus
     });
 
     await newPreference.save();
 
+    // Step 3: Return EXACT AI output to client
     res.status(201).json({
       status: "success",
-      message: "Preferences saved and analyzed.",
-      prediction: staticPrediction,
-      saved_id: newPreference._id
+      saved_id: newPreference._id,
+      ai_response: aiResponse      // Return exact AI response
     });
 
   } catch (error) {
-    console.error("Error saving preferences:", error);
+    console.error("Server Error:", error);
     res.status(500).json({ 
-      message: "Server error processing request", 
-      error 
+      status: "error",
+      message: "Internal server error" 
     });
   }
 };

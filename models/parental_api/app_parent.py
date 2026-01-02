@@ -43,7 +43,7 @@ careers_df = (
 app = FastAPI(title="Parent Recommendation API", version="1.3")
 
 class ParentInput(BaseModel):
-    budget_max_tuition: float = Field(..., gt=0)
+    budget_max_tuition: float = Field(..., ge=0)
     importance_finances: int = Field(..., ge=1, le=5)
     importance_job_security: int = Field(..., ge=1, le=5)
     importance_prestige: int = Field(..., ge=1, le=5)
@@ -60,21 +60,40 @@ def location_match(parent_pref: str, career_loc: str) -> int:
     order = {"local": 0, "national": 1, "international": 2}
     return int(order[career_loc] <= order[parent_pref])
 
-def explain_with_gemini(career_id: str, score: float, context: Dict[str, Any]) -> str:
+def to_percentage(score: int) -> str:
+    # Convert 1-5 scale to 0-100%
+    percentage = (score - 1) / 4 * 100
+    return f"{int(percentage)}%"
+
+def explain_with_gemini(career_id: str, score: float, context: Dict[str, Any],input: ParentInput) -> str:
     if not client:
         return "Recommended based on financial stability and prestige."
 
     prompt = f"""
-    As a career advisor, explain why '{career_id}' is a great fit for a student.
-    Parent's priorities: Finance Importance ({context['fin']}/5), Prestige Importance ({context['pre']}/5).
-    Recommendation Score: {round(score, 2)}.
-    Keep it to 2-3 warm, professional sentences for a parent.
+    You are a professional career advisor for parents. 
+    Explain why the career '{career_id}' (Recommendation Score: {round(score, 2)}) is a great fit.
+    
+    Consider the following parent preferences in your explanation:
+    - Max Tuition Budget: {input.budget_max_tuition}
+    - Importance of Finances: {to_percentage(input.importance_finances)}
+    - Importance of Job Security: {to_percentage(input.importance_job_security)}
+    - Importance of Prestige: {to_percentage(input.importance_prestige)}
+    - Risk Tolerance: {to_percentage(input.parent_risk_tolerance)}
+    - Influence from others: {to_percentage(input.influence_from_people)}
+    - Location Preference: {input.location_preference}
+    - Migration Allowed: {"Yes" if input.migration_allowed else "No"}
+
+    Instructions:
+1. Provide the response in exactly 3 short, warm bullet points.
+2. Mention specific labels (High, Medium, or Low) based on the percentages provided.
+3. Strictly avoid using any bold text (no asterisks **).
+4. Use professional and encouraging language suitable for a customer-facing report.
     """
     
     try:
         # Correct syntax for the new google-genai SDK
         response = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             contents=prompt
         )
         return response.text.strip()
@@ -126,7 +145,8 @@ async def rescore_parent(input: ParentInput):
     explanation = explain_with_gemini(
         best["career_id"], 
         best["parent_score"], 
-        {"fin": input.importance_finances, "pre": input.importance_prestige}
+        {"fin": input.importance_finances, "pre": input.importance_prestige},
+        input
     )
 
     return {

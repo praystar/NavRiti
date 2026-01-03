@@ -87,7 +87,7 @@ const percentageTo1To5 = (percentage: number): number => {
   return 5;
 };
 
-const clampPercentage = (v: number) => Math.max(0, Math.min(100, v));
+
 
 // Format career ID: capitalizes first letter of each word and replaces _ with space
 const formatCareerId = (id: string): string => {
@@ -892,13 +892,17 @@ export default function ParentForm() {
                 </div>
                 <input 
                   type="number" 
-                  min={0} 
-                  step="1"
-                  value={maxTuition}
+                  value={maxTuition === 0 ? "" : maxTuition} // Show empty box instead of 0
                   onChange={e => {
                     const value = e.target.value;
-                    const numValue = value === '' ? 0 : parseInt(value, 10);
-                    if (!isNaN(numValue) && numValue >= 0) {
+                    // Allow empty string for backspacing
+                    if (value === "") {
+                      setMaxTuition(0);
+                      return;
+                    }
+                    // Remove leading zeros using regex
+                    const numValue = parseInt(value.replace(/^0+/, ''), 10);
+                    if (!isNaN(numValue)) {
                       setMaxTuition(numValue);
                     }
                   }}

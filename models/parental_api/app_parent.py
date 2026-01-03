@@ -135,13 +135,26 @@ async def rescore_parent(input: ParentInput):
     X = preprocessor.transform(pd.DataFrame(rows))
     scores = model.predict(X)
 
-    results = sorted(
+    all_results = sorted(
         [{"career_id": career_ids[i], "parent_score": round(float(scores[i]), 3)} for i in range(len(scores))],
         key=lambda x: x["parent_score"],
         reverse=True
     )
 
-    best = results[0]
+    # 3. MANUALLY REMOVE unacceptable careers from the results
+    # We use a set for faster lookup and lower() for case-insensitivity
+    blocked = {str(c).lower().strip() for c in input.unacceptable_careers}
+    
+    filtered_results = [
+        res for res in all_results 
+        if str(res["career_id"]).lower() not in blocked
+    ]
+
+    # 4. Handle edge case: what if everything was blocked?
+    if not filtered_results:
+        raise HTTPException(status_code=400, detail="No acceptable careers found.")
+
+    best = filtered_results[0]
     explanation = explain_with_gemini(
         best["career_id"], 
         best["parent_score"], 
@@ -150,7 +163,7 @@ async def rescore_parent(input: ParentInput):
     )
 
     return {
-        "top_5_parent_scores": results[:5],
+        "top_5_parent_scores": filtered_results[:5],
         "final_recommendation": {
             "career_id": best["career_id"],
             "parent_score": best["parent_score"],

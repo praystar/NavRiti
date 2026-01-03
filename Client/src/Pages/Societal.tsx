@@ -393,7 +393,7 @@ const renderQuestionText = (text: string) => {
         <div className="relative overflow-hidden rounded-3xl">
           <div className="relative backdrop-blur-xl bg-gray-900/60 border border-emerald-500/30 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-500/20">
             {/* Header */}
-            <div className="bg-gradient-to-r from-pink-600 to-purple-600 px-8 py-6">
+            <div className="backdrop-blur-sm bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 px-8 py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-white/20">

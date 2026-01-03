@@ -24,6 +24,7 @@ import {
   History,
   X,
   ChevronDown,
+  ChevronUp,
   Home,
   Flag,
   Globe2,
@@ -87,7 +88,7 @@ const percentageTo1To5 = (percentage: number): number => {
   return 5;
 };
 
-
+const clampPercentage = (v: number) => Math.max(0, Math.min(100, v));
 
 // Format career ID: capitalizes first letter of each word and replaces _ with space
 const formatCareerId = (id: string): string => {
@@ -97,6 +98,7 @@ const formatCareerId = (id: string): string => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 };
+
 
 // Enhanced RangeInput with percentage display
 const RangeInput = ({ 
@@ -383,6 +385,9 @@ const MigrationSwitch = ({
 );
 
 export default function ParentForm() {
+  const [expanded, setExpanded] = useState(false);
+    const [expandedBulletPoints, setExpandedBulletPoints] = useState<Record<number, boolean>>({});
+
   // --- STATE MANAGEMENT (Store percentages 0-100%) ---
   const [financial, setFinancial] = useState<number>(50); // 0-100%
   const [jobSecurity, setJobSecurity] = useState<number>(50);
@@ -892,17 +897,13 @@ export default function ParentForm() {
                 </div>
                 <input 
                   type="number" 
-                  value={maxTuition === 0 ? "" : maxTuition} // Show empty box instead of 0
+                  min={0} 
+                  step="1"
+                  value={maxTuition}
                   onChange={e => {
                     const value = e.target.value;
-                    // Allow empty string for backspacing
-                    if (value === "") {
-                      setMaxTuition(0);
-                      return;
-                    }
-                    // Remove leading zeros using regex
-                    const numValue = parseInt(value.replace(/^0+/, ''), 10);
-                    if (!isNaN(numValue)) {
+                    const numValue = value === '' ? 0 : parseInt(value, 10);
+                    if (!isNaN(numValue) && numValue >= 0) {
                       setMaxTuition(numValue);
                     }
                   }}
@@ -1050,294 +1051,386 @@ export default function ParentForm() {
           </motion.div>
 
           {/* Server Response Notification */}
-          <AnimatePresence>
-            {serverResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="mt-8"
-              >
-                {serverResult.ok && serverResult.data?.ai_response ? (
-                  // SUCCESS CARD
-                  <div className="relative overflow-hidden rounded-3xl">
-                    <div className="relative backdrop-blur-xl bg-gray-900/60 border border-emerald-500/30 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-500/20">
-                      {/* Header */}
-                      <div className="bg-gradient-to-r from-purple-600  to-pink-500 px-8 py-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-white/20">
-                              <CheckCircle size={24} className="text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-2xl font-bold text-white">
-                                Celestial Analysis Complete
-                              </h3>
-                              <p className="text-emerald-100 text-sm">
-                                Your family's cosmic preferences have been mapped to the stars
-                              </p>
-                            </div>
-                          </div>
-                         <div className="flex flex-col items-end">
-  <div className="text-emerald-100/80 text-xs font-medium bg-white/10 px-3 py-1 rounded-lg mb-1">
-    STAR ID: {formatStarName(serverResult.data.saved_id || "NEW-STAR")}
-  </div>
-  <div className="text-emerald-100/60 text-xs">
-    {new Date().toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })}
+         <AnimatePresence>
+  {serverResult && (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      className="mt-8"
+    >
+      {serverResult.ok && serverResult.data?.ai_response ? (
+        // SUCCESS CARD
+        <div className="relative overflow-hidden rounded-3xl">
+          <div className="relative backdrop-blur-xl bg-gray-900/60 border border-emerald-500/30 rounded-3xl overflow-hidden shadow-2xl shadow-emerald-500/20">
+            {/* Header */}
+            <div className="backdrop-blur-sm bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-white/20">
+                    <CheckCircle size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Celestial Analysis Complete
+                    </h3>
+                    <p className="text-emerald-100 text-sm">
+                      Your family's cosmic preferences have been mapped to the stars
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <div className="text-emerald-100/80 text-xs font-medium bg-white/10 px-3 py-1 rounded-lg mb-1">
+                    STAR ID: {formatStarName(serverResult.data.saved_id || "NEW-STAR")}
+                  </div>
+                  <div className="text-emerald-100/60 text-xs">
+                    {new Date().toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+         {/* Body */}
+<div className="p-8">
+  {/* Top Recommendation - Reorganized layout */}
+  <div className="mb-12">
+    {/* Header and Career Name */}
+   <div className="mb-6">
+  <div className="flex flex-col md:flex-row md:items-end justify-center gap-6">
+    
+    {/* LEFT SECTION */}
+<div className="flex flex-col gap-2 mt-4 items-start mr-auto">
+      <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+        <Sparkles size={14} />
+        Recommended
+      </div>
+
+      <div className="text-4xl font-bold text-white">
+        {formatCareerId(
+          serverResult.data.ai_response.final_recommendation.career_id
+        )}
+      </div>
+<div className="text-lg font-semibold text-emerald-300 mb-4">
+        Here's why {formatCareerId(serverResult.data.ai_response.final_recommendation.career_id)} is an excellent consideration for your child:
+      </div>
+     
+    </div>
+
+    {/* RIGHT SECTION (ORB) */}
+    <div className="flex justify-around w-full md:w-auto">
+      <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-emerald-500/30 bg-gradient-to-br from-gray-900 to-emerald-900/30 flex flex-col items-center justify-center">
+        <span className="text-4xl md:text-5xl font-black bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
+          {(serverResult.data.ai_response.final_recommendation.parent_score * 100).toFixed(1)}%
+        </span>
+        <span className="text-xs font-medium text-emerald-300 uppercase tracking-wider mt-1">
+          Celestial Match
+        </span>
+      </div>
+    </div>
+  <div className="invisible hidden md:flex justify-around w-full md:w-auto">
+  <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-emerald-500/30 bg-gradient-to-br from-gray-900 to-emerald-900/30 flex flex-col items-center justify-center">
+    <span className="text-4xl md:text-5xl font-black bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
+      {(serverResult.data.ai_response.final_recommendation.parent_score * 100).toFixed(1)}%
+    </span>
+    <span className="text-xs font-medium text-emerald-300 uppercase tracking-wider mt-1">
+      Celestial Match
+    </span>
   </div>
 </div>
-                        </div>
+
+
+  </div>
+</div>
+
+    
+    {/* Here's Why Section - Takes full width */}
+    <div className="w-full">
+      
+      
+      {/* Bullet Points in 2-column grid - Full width */}
+      <div className="w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(() => {
+            const explanation = formatExplanation(serverResult.data.ai_response.final_recommendation.parent_explanation);
+            const bulletPoints = explanation.split('*').filter(point => point.trim().length > 0);
+            const MAX_LENGTH = 150;
+            
+            return (
+              <>
+                {bulletPoints.map((point, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="group w-full"
+                  >
+                    <div className="h-full flex gap-3 p-4 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-gray-900/50 to-emerald-900/10 hover:border-emerald-500/40 transition-all duration-300 w-full">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                       </div>
-
-                      {/* Body */}
-                      <div className="p-8">
-                        {/* Top Recommendation */}
-                        <div className="grid md:grid-cols-2 gap-8 mb-12">
-                          <div>
-                            <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                              <Sparkles size={14} />
-                              Recommended Cosmic Path
-                            </div>
-                            <div className="text-4xl font-bold text-white mb-2">
-                              {formatCareerId(serverResult.data.ai_response.final_recommendation.career_id)}
-                            </div>
-                            <p className="text-gray-300 text-lg italic border-l-4 border-emerald-500 pl-4 py-2">
-                              {formatExplanation(serverResult.data.ai_response.final_recommendation.parent_explanation)}
-                            </p>
-                          </div>
-
-                          {/* Score Orb */}
-                          <div className="flex flex-col items-center justify-center">
-                            <div className="relative">
-                              <div className="relative w-48 h-48 rounded-full border-4 border-emerald-500/30 bg-gradient-to-br from-gray-900 to-emerald-900/30 flex flex-col items-center justify-center">
-                                <span className="text-6xl font-black bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
-                                  {(serverResult.data.ai_response.final_recommendation.parent_score * 100).toFixed(1)}%
-                                </span>
-                                <span className="text-sm font-medium text-emerald-300 uppercase tracking-wider mt-2">
-                                  Celestial Match
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Top 5 Careers - Enhanced Layout with specific colors */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-8">
-                            <Award className="text-amber-400" size={20} />
-                            <h4 className="text-lg font-semibold text-white">Top 5 Celestial Matches</h4>
-                          </div>
-                          
-                          <div className="relative">
-                            {/* Custom arrangement: 4th, 2nd, 1st, 3rd, 5th */}
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
-                              {/* 4th Position - Leftmost */}
-                              {serverResult.data.ai_response.top_5_parent_scores[3] && (
-                                <motion.div
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  transition={{ delay: 0.1 }}
-                                  className="p-5 rounded-2xl backdrop-blur-sm border border-transparent hover:scale-105 transition-all duration-300 bg-gradient-to-br from-gray-900/40 to-gray-800/40 shadow-md"
-                                >
-                                  <div className="flex flex-col items-center text-center">
-                                    {/* Rank Badge */}
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gray-800 text-gray-400">
-                                      <span className="text-sm font-bold">#4</span>
-                                    </div>
-                                    
-                                    {/* Career Name */}
-                                    <div className="text-lg font-bold text-white mb-2">
-                                      {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[3].career_id)}
-                                    </div>
-                                    
-                                    {/* Score */}
-                                    <div className="text-3xl font-black mb-1 text-gray-300">
-                                      {(serverResult.data.ai_response.top_5_parent_scores[3].parent_score * 100).toFixed(1)}%
-                                    </div>
-                                    
-                                    {/* Subtle label */}
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      Good Match
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-
-                              {/* 2nd Position */}
-                              {serverResult.data.ai_response.top_5_parent_scores[1] && (
-                                <motion.div
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  transition={{ delay: 0.2 }}
-                                  className="p-5 rounded-2xl backdrop-blur-sm border border-indigo-500/40 hover:scale-105 transition-all duration-300 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/20 relative z-5"
-                                >
-                                  <div className="flex flex-col items-center text-center">
-                                    {/* Rank Badge */}
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                      <span className="text-sm font-bold">#2</span>
-                                    </div>
-                                    
-                                    {/* Career Name */}
-                                    <div className="text-lg font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors">
-                                      {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[1].career_id)}
-                                    </div>
-                                    
-                                    {/* Score */}
-                                    <div className="text-3xl font-black mb-1 bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                                      {(serverResult.data.ai_response.top_5_parent_scores[1].parent_score * 100).toFixed(1)}%
-                                    </div>
-                                    
-                                    {/* Subtle label */}
-                                    <div className="text-xs text-indigo-400 mt-1">
-                                      Excellent Match
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-
-                              {/* 1st Position - Center */}
-                              {serverResult.data.ai_response.top_5_parent_scores[0] && (
-                                <motion.div
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  transition={{ delay: 0.3 }}
-                                  className="p-5 rounded-2xl backdrop-blur-sm border border-emerald-500/40 hover:scale-105 transition-all duration-300 bg-gradient-to-br from-emerald-500/30 to-teal-500/30 shadow-2xl shadow-emerald-500/30 relative z-10 md:col-start-3 md:row-start-1 scale-110"
-                                >
-                                  <div className="flex flex-col items-center text-center">
-                                    {/* Rank Badge */}
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
-                                      <span className="text-sm font-bold">#1</span>
-                                    </div>
-                                    
-                                    {/* Career Name */}
-                                    <div className="text-lg font-bold text-white mb-2">
-                                      {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[0].career_id)}
-                                    </div>
-                                    
-                                    {/* Score */}
-                                    <div className="text-3xl font-black mb-1 bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
-                                      {(serverResult.data.ai_response.top_5_parent_scores[0].parent_score * 100).toFixed(1)}%
-                                    </div>
-                                    
-                                    {/* Subtle label */}
-                                    <div className="text-xs text-emerald-400 mt-1">
-                                      Best Match
-                                    </div>
-                                    
-                                    {/* Special badge for top match */}
-                                    <div className="mt-3 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
-                                      <div className="flex items-center gap-1">
-                                        <Star size={10} className="text-emerald-300" />
-                                        <span className="text-xs font-bold text-emerald-300">NORTH STAR</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-
-                              {/* 3rd Position */}
-                              {serverResult.data.ai_response.top_5_parent_scores[2] && (
-                                <motion.div
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  transition={{ delay: 0.4 }}
-                                  className="p-5 rounded-2xl backdrop-blur-sm border border-indigo-500/40 hover:scale-105 transition-all duration-300 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/20 relative z-5"
-                                >
-                                  <div className="flex flex-col items-center text-center">
-                                    {/* Rank Badge */}
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
-                                      <span className="text-sm font-bold">#3</span>
-                                    </div>
-                                    
-                                    {/* Career Name */}
-                                    <div className="text-lg font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors">
-                                      {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[2].career_id)}
-                                    </div>
-                                    
-                                    {/* Score */}
-                                    <div className="text-3xl font-black mb-1 bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                                      {(serverResult.data.ai_response.top_5_parent_scores[2].parent_score * 100).toFixed(1)}%
-                                    </div>
-                                    
-                                    {/* Subtle label */}
-                                    <div className="text-xs text-indigo-400 mt-1">
-                                      Great Match
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-
-                              {/* 5th Position - Rightmost */}
-                              {serverResult.data.ai_response.top_5_parent_scores[4] && (
-                                <motion.div
-                                  initial={{ y: 20, opacity: 0 }}
-                                  animate={{ y: 0, opacity: 1 }}
-                                  transition={{ delay: 0.5 }}
-                                  className="p-5 rounded-2xl backdrop-blur-sm border border-transparent hover:scale-105 transition-all duration-300 bg-gradient-to-br from-gray-900/40 to-gray-800/40 shadow-md"
-                                >
-                                  <div className="flex flex-col items-center text-center">
-                                    {/* Rank Badge */}
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gray-800 text-gray-400">
-                                      <span className="text-sm font-bold">#5</span>
-                                    </div>
-                                    
-                                    {/* Career Name */}
-                                    <div className="text-lg font-bold text-white mb-2">
-                                      {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[4].career_id)}
-                                    </div>
-                                    
-                                    {/* Score */}
-                                    <div className="text-3xl font-black mb-1 text-gray-300">
-                                      {(serverResult.data.ai_response.top_5_parent_scores[4].parent_score * 100).toFixed(1)}%
-                                    </div>
-                                    
-                                    {/* Subtle label */}
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      Good Match
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </div>
-                          </div>
+                      <div className="flex-1 min-w-0"> {/* Added min-w-0 for proper text truncation */}
+                        <div className="text-gray-200 leading-relaxed break-words">
+                          {(() => {
+                            const isExpanded = expandedBulletPoints[index] || false;
+                            const shouldTruncate = point.length > MAX_LENGTH;
+                            const displayText = shouldTruncate && !isExpanded 
+                              ? `${point.substring(0, MAX_LENGTH)}...` 
+                              : point.trim();
+                            
+                            return (
+                              <>
+                                {displayText}
+                                {shouldTruncate && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setExpandedBulletPoints(prev => ({
+                                        ...prev,
+                                        [index]: !prev[index]
+                                      }));
+                                    }}
+                                    className="ml-2 text-emerald-400 hover:text-emerald-300 text-sm font-medium whitespace-nowrap"
+                                  >
+                                    {isExpanded ? 'Show less' : 'Show more'}
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  // ERROR CARD
-                  <div className="relative overflow-hidden rounded-2xl">
-                    <div className="relative backdrop-blur-xl bg-gray-900/60 border border-rose-500/30 rounded-2xl overflow-hidden">
-                      <div className="flex items-start gap-4 p-6">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 border border-rose-500/30">
-                          <AlertTriangle className="text-rose-400" size={24} />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-semibold text-white mb-2">Cosmic Connection Failed</h3>
-                          <p className="text-rose-200/80">
-                            {serverResult.error || "The celestial bodies could not align. Please try again."}
-                          </p>
-                          <button
-                            onClick={() => setServerResult(null)}
-                            className="mt-4 px-4 py-2 rounded-lg backdrop-blur-sm bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-white hover:bg-rose-500/30 transition-colors text-sm"
-                          >
-                            Dismiss
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  </motion.div>
+                ))}
+              </>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  </div>
+  {/* Top 5 Careers - Enhanced Layout with specific colors */}
+  <div>
+    <div className="flex items-center gap-2 mb-8">
+      <Award className="text-amber-400" size={20} />
+      <h4 className="text-lg font-semibold text-white">Top 5 Celestial Matches</h4>
+    </div>
+    
+    {/* Rest of your Top 5 Careers code remains the same */}
+    <div className="relative">
+      {/* Custom arrangement: 4th, 2nd, 1st, 3rd, 5th */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
+        {/* 4th Position - Leftmost */}
+        {serverResult.data.ai_response.top_5_parent_scores[3] && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="p-5 rounded-2xl backdrop-blur-sm border border-transparent hover:scale-105 transition-all duration-300 bg-gradient-to-br from-gray-900/40 to-gray-800/40 shadow-md"
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Rank Badge */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gray-800 text-gray-400">
+                <span className="text-sm font-bold">#4</span>
+              </div>
+              
+              {/* Career Name */}
+              <div className="text-lg font-bold text-white mb-2">
+                {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[3].career_id)}
+              </div>
+              
+              {/* Score */}
+              <div className="text-3xl font-black mb-1 text-gray-300">
+                {(serverResult.data.ai_response.top_5_parent_scores[3].parent_score * 100).toFixed(1)}%
+              </div>
+              
+              {/* Subtle label */}
+              <div className="text-xs text-gray-500 mt-1">
+                Good Match
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 2nd Position */}
+        {serverResult.data.ai_response.top_5_parent_scores[1] && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="p-5 rounded-2xl backdrop-blur-sm border border-indigo-500/40 hover:scale-105 transition-all duration-300 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/20 relative z-5"
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Rank Badge */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                <span className="text-sm font-bold">#2</span>
+              </div>
+              
+              {/* Career Name */}
+              <div className="text-lg font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors">
+                {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[1].career_id)}
+              </div>
+              
+              {/* Score */}
+              <div className="text-3xl font-black mb-1 bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                {(serverResult.data.ai_response.top_5_parent_scores[1].parent_score * 100).toFixed(1)}%
+              </div>
+              
+              {/* Subtle label */}
+              <div className="text-xs text-indigo-400 mt-1">
+                Excellent Match
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 1st Position - Center */}
+        {serverResult.data.ai_response.top_5_parent_scores[0] && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="p-5 rounded-2xl backdrop-blur-sm border border-emerald-500/40 hover:scale-105 transition-all duration-300 bg-gradient-to-br from-emerald-500/30 to-teal-500/30 shadow-2xl shadow-emerald-500/30 relative z-10 md:col-start-3 md:row-start-1 scale-110"
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Rank Badge */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
+                <span className="text-sm font-bold">#1</span>
+              </div>
+              
+              {/* Career Name */}
+              <div className="text-lg font-bold text-white mb-2">
+                {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[0].career_id)}
+              </div>
+              
+              {/* Score */}
+              <div className="text-3xl font-black mb-1 bg-gradient-to-r from-emerald-300 to-teal-300 bg-clip-text text-transparent">
+                {(serverResult.data.ai_response.top_5_parent_scores[0].parent_score * 100).toFixed(1)}%
+              </div>
+              
+              {/* Subtle label */}
+              <div className="text-xs text-emerald-400 mt-1">
+                Best Match
+              </div>
+              
+              {/* Special badge for top match */}
+              <div className="mt-3 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+                <div className="flex items-center gap-1">
+                  <Star size={10} className="text-emerald-300" />
+                  <span className="text-xs font-bold text-emerald-300">NORTH STAR</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 3rd Position */}
+        {serverResult.data.ai_response.top_5_parent_scores[2] && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="p-5 rounded-2xl backdrop-blur-sm border border-indigo-500/40 hover:scale-105 transition-all duration-300 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/20 relative z-5"
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Rank Badge */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gradient-to-br from-indigo-500 to-purple-500 text-white">
+                <span className="text-sm font-bold">#3</span>
+              </div>
+              
+              {/* Career Name */}
+              <div className="text-lg font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors">
+                {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[2].career_id)}
+              </div>
+              
+              {/* Score */}
+              <div className="text-3xl font-black mb-1 bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                {(serverResult.data.ai_response.top_5_parent_scores[2].parent_score * 100).toFixed(1)}%
+              </div>
+              
+              {/* Subtle label */}
+              <div className="text-xs text-indigo-400 mt-1">
+                Great Match
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 5th Position - Rightmost */}
+        {serverResult.data.ai_response.top_5_parent_scores[4] && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="p-5 rounded-2xl backdrop-blur-sm border border-transparent hover:scale-105 transition-all duration-300 bg-gradient-to-br from-gray-900/40 to-gray-800/40 shadow-md"
+          >
+            <div className="flex flex-col items-center text-center">
+              {/* Rank Badge */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center mb-3 bg-gray-800 text-gray-400">
+                <span className="text-sm font-bold">#5</span>
+              </div>
+              
+              {/* Career Name */}
+              <div className="text-lg font-bold text-white mb-2">
+                {formatCareerId(serverResult.data.ai_response.top_5_parent_scores[4].career_id)}
+              </div>
+              
+              {/* Score */}
+              <div className="text-3xl font-black mb-1 text-gray-300">
+                {(serverResult.data.ai_response.top_5_parent_scores[4].parent_score * 100).toFixed(1)}%
+              </div>
+              
+              {/* Subtle label */}
+              <div className="text-xs text-gray-500 mt-1">
+                Good Match
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+          </div>
+        </div>
+      ) : (
+        // ERROR CARD
+        <div className="relative overflow-hidden rounded-2xl">
+          <div className="relative backdrop-blur-xl bg-gray-900/60 border border-rose-500/30 rounded-2xl overflow-hidden">
+            <div className="flex items-start gap-4 p-6">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 border border-rose-500/30">
+                <AlertTriangle className="text-rose-400" size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">Cosmic Connection Failed</h3>
+                <p className="text-rose-200/80">
+                  {serverResult.error || "The celestial bodies could not align. Please try again."}
+                </p>
+                <button
+                  onClick={() => setServerResult(null)}
+                  className="mt-4 px-4 py-2 rounded-lg backdrop-blur-sm bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-white hover:bg-rose-500/30 transition-colors text-sm"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  )}
+</AnimatePresence>
         </form>
       </div>
     </div>

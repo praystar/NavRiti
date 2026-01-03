@@ -84,7 +84,7 @@ def explain_with_gemini(career_id: str, score: float, context: Dict[str, Any],in
     - Migration Allowed: {"Yes" if input.migration_allowed else "No"}
 
     Instructions:
-1. Provide the response in exactly 3 short, warm bullet points.
+1. Provide the response in exactly 6 bullet points.
 2. Mention specific labels (High, Medium, or Low) based on the percentages provided.
 3. Strictly avoid using any bold text (no asterisks **).
 4. Use professional and encouraging language suitable for a customer-facing report.

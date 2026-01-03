@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,7 @@ import AppNavbar from "../components/AppNavbar.tsx";
 import Background from "../components/Background.tsx";
 
 const SERVER_BASE = import.meta.env.VITE_SERVER_BASE_API;
+
 
 // New type matching AI server format
 type AIRequestBody = {
@@ -586,8 +588,7 @@ export default function ParentForm() {
       <Background intensity="medium" showConstellations={true} showZodiac={true} showPlanets={true} />
       
       {/* Add custom scrollbar styles */}
-   // Update the global styles in the main component
-<style jsx global>{`
+<style>{`
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(99, 102, 241, 0.5) rgba(31, 41, 55, 0.5);
